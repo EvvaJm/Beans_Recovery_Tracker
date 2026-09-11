@@ -238,7 +238,7 @@
         <button class="quick-name-chip" data-name="Evva">Evva</button>
         <button class="quick-name-chip" data-name="Mom">Mom</button>
         <button class="quick-name-chip" data-name="Dad">Dad</button>
-        <button class="quick-name-chip" data-name="Cadence">Cadence</button>
+        <button class="quick-name-chip" data-name="Sister">Sister</button>
       </div>
       <button class="continue-btn" id="continue-btn">Continue</button>
     </div>
@@ -304,6 +304,7 @@
             <h2>🐾 Care</h2>
             <p>Record Beans' other care throughout the day.</p>
           </div>
+          <div class="card" id="reposition-card"></div>
           <div class="care-grid" id="care-list"></div>
         </section>
 
@@ -427,8 +428,7 @@ const CARE_ITEMS = [
   { id: "bladder", name: "Bladder Expression", emoji: "💧" },
   { id: "poop", name: "Poop", emoji: "💩" },
   { id: "diaper", name: "Diaper Change", emoji: "🩲" },
-  { id: "clean-bum", name: "Clean Bum", emoji: "🧼" },
-  { id: "reposition", name: "Reposition", emoji: "🛏️" }
+  { id: "clean-bum", name: "Clean Bum", emoji: "🧼" }
 ];
 
 // ---- Local (device-only) state — NOT Beans' data, just "who am I" ----
@@ -479,6 +479,13 @@ function countdownString(msRemaining) {
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
   return `${h}h ${m}m remaining`;
+}
+function elapsedString(msElapsed) {
+  if (msElapsed < 60000) return "just now";
+  const totalMin = Math.floor(msElapsed / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
 // =========================== SETUP / USER FLOW ===========================
@@ -715,6 +722,49 @@ function renderMeals() { renderToggleGroup("#meals-list", MEALS); }
 
 // =========================== CARE ===========================
 const careLastState = {}; // careId -> Date (most recent ever, not just today)
+const repositionState = { side: null, timestamp: null };
+
+function renderReposition() {
+  const card = $("#reposition-card");
+  const { side, timestamp } = repositionState;
+  const statusHtml = side
+    ? `${side === "left" ? "Left" : "Right"} side · <span id="reposition-elapsed">${elapsedString(Date.now() - timestamp.getTime())}</span>`
+    : `Not recorded yet`;
+
+  card.innerHTML = `
+    <div class="med-top" style="margin-bottom:2px;">
+      <span class="med-name">🛏️ Reposition</span>
+    </div>
+    <div class="med-schedule" style="font-size:14px;">${statusHtml}</div>
+    <div class="toggle-row" style="margin-top:12px;">
+      <button class="toggle-btn ${side === "left" ? "done" : ""}" data-side="left">Now on Left</button>
+      <button class="toggle-btn ${side === "right" ? "done" : ""}" data-side="right">Now on Right</button>
+    </div>
+  `;
+  card.querySelectorAll("[data-side]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const sideVal = btn.dataset.side;
+      btn.disabled = true;
+      try {
+        await recordEvent({ type: "care", name: "Reposition", side: sideVal });
+        showToast(`Flipped to ${sideVal} side ✓`);
+      } catch (e) {
+        console.error(e);
+        showToast("Couldn't save — will retry when online");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+// tick the "since last flip" timer every second without a full re-render
+setInterval(() => {
+  const el = $("#reposition-elapsed");
+  if (el && repositionState.timestamp) {
+    el.textContent = elapsedString(Date.now() - repositionState.timestamp.getTime());
+  }
+}, 1000);
 
 function renderCare() {
   const container = $("#care-list");
@@ -755,7 +805,7 @@ function renderRecentActivity() {
   list.innerHTML = items.map(ev => `
     <div class="activity-item">
       <div class="left">
-        <div class="name">${ev.name}</div>
+        <div class="name">${ev.name}${ev.side ? ` · ${ev.side === "left" ? "Left" : "Right"} side` : ""}</div>
         <div class="meta">Recorded by ${ev.user}</div>
       </div>
       <div class="time">${fmtTime(ev.timestamp)}</div>
@@ -764,11 +814,11 @@ function renderRecentActivity() {
 }
 
 // =========================== FIRESTORE: WRITE ===========================
-async function recordEvent({ type, name, medicationId = null, dose = null }) {
+async function recordEvent({ type, name, medicationId = null, dose = null, side = null }) {
   if (!db) { showToast("Firebase isn't configured yet"); return; }
   const now = new Date();
   await addDoc(collection(db, "events"), {
-    type, name, medicationId, dose,
+    type, name, medicationId, dose, side,
     user: currentUser,
     timestamp: Timestamp.fromDate(now),
     createdAt: serverTimestamp()
@@ -863,6 +913,27 @@ function attachListeners() {
     }, err => console.error("care listener", item.id, err));
     unsubscribers.push(unsub);
   });
+
+  // Most recent Reposition event (tracks which side + when, for the live "since last flip" timer)
+  const repoQ = query(
+    collection(db, "events"),
+    where("type", "==", "care"),
+    where("name", "==", "Reposition"),
+    orderBy("timestamp", "desc"),
+    limit(1)
+  );
+  const unsubRepo = onSnapshot(repoQ, snap => {
+    if (snap.empty) {
+      repositionState.side = null;
+      repositionState.timestamp = null;
+    } else {
+      const data = snap.docs[0].data();
+      repositionState.side = data.side || null;
+      repositionState.timestamp = tsToDate(data.timestamp);
+    }
+    renderReposition();
+  }, err => console.error("reposition listener", err));
+  unsubscribers.push(unsubRepo);
 }
 
 // =========================== HISTORY SCREEN ===========================
@@ -916,7 +987,7 @@ function renderHistoryContent(events, date) {
         ${group.items.map(ev => `
           <div class="activity-item">
             <div class="left">
-              <div class="name">${ev.name}${ev.dose ? ` · ${ev.dose}` : ""}</div>
+              <div class="name">${ev.name}${ev.dose ? ` · ${ev.dose}` : ""}${ev.side ? ` · ${ev.side === "left" ? "Left" : "Right"} side` : ""}</div>
               <div class="meta">Recorded by ${ev.user}</div>
             </div>
             <div class="time">${fmtTime(ev.timestamp)}</div>
@@ -944,6 +1015,7 @@ function boot() {
   renderWalks();
   renderMeals();
   renderCare();
+  renderReposition();
   renderRecentActivity();
   updateOnlineBanner();
 
