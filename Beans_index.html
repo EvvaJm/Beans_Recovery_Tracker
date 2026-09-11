@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+<title>Beans' Recovery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #FBF1F7;
+    --bg-soft: #F7E9F3;
+    --card: #FFFFFF;
+    --purple: #8B6FB3;
+    --purple-deep: #6C4C91;
+    --purple-pale: #EDE3F7;
+    --pink: #F2A6C0;
+    --pink-deep: #E8749A;
+    --pink-pale: #FCE4ED;
+    --text: #4A3358;
+    --text-soft: #8C7A9B;
+    --line: #F0DEEC;
+    --shadow: 0 10px 30px rgba(139,111,179,0.14);
+    --shadow-sm: 0 4px 14px rgba(139,111,179,0.10);
+    --radius-lg: 24px;
+    --radius-md: 18px;
+    --radius-sm: 12px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 500px at 10% -10%, var(--bg-soft), transparent),
+      var(--bg);
+    color:var(--text);
+    font-family:'Nunito', sans-serif;
+    min-height:100vh;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1,h2,h3,.display{
+    font-family:'Baloo 2', 'Nunito', sans-serif;
+  }
+  button{font-family:inherit;}
+  #app{max-width:560px;margin:0 auto;padding-bottom:64px;min-height:100vh;}
+
+  /* ---------- Header ---------- */
+  header.topbar{
+    position:sticky; top:0; z-index:40;
+    display:flex; align-items:center; gap:12px;
+    padding:12px 16px;
+    background:rgba(251,241,247,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  .beans-avatar{
+    width:44px;height:44px;border-radius:50%;
+    object-fit:cover; flex-shrink:0;
+    box-shadow: 0 3px 10px rgba(139,111,179,0.25);
+    background:var(--purple-pale);
+  }
+  .beans-avatar.large{width:140px;height:140px; box-shadow: 0 10px 30px rgba(139,111,179,0.28);}
+  header .brand{flex:1; min-width:0;}
+  header .brand .name{font-weight:700; font-size:18px; color:var(--purple-deep); line-height:1.15;}
+  header .brand .user{font-size:12.5px; color:var(--text-soft); font-weight:700;}
+  .icon-btn{
+    border:none; background:var(--purple-pale); color:var(--purple-deep);
+    width:38px;height:38px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px; cursor:pointer; flex-shrink:0;
+  }
+  .icon-btn:active{transform:scale(0.94);}
+
+  /* ---------- Layout ---------- */
+  main{padding:16px;}
+  .hidden{display:none !important;}
+
+  .day-banner{
+    text-align:center; margin: 6px 0 18px;
+  }
+  .day-banner .date{color:var(--text-soft); font-weight:700; font-size:14px; letter-spacing:.2px;}
+  .day-banner .today-title{font-size:26px; font-weight:700; color:var(--purple-deep); margin:2px 0 6px;}
+  .day-banner .recovery-day{
+    display:inline-block; background:var(--pink-pale); color:var(--pink-deep);
+    font-weight:800; font-size:13.5px; padding:6px 16px; border-radius:999px;
+  }
+
+  section.block{margin-bottom:22px;}
+  section.block .block-head{margin-bottom:10px; padding:0 2px;}
+  section.block .block-head h2{font-size:19px; margin:0 0 2px; color:var(--purple-deep); display:flex; align-items:center; gap:8px;}
+  section.block .block-head p{margin:0; font-size:13.5px; color:var(--text-soft); font-weight:700;}
+
+  .card{
+    background:var(--card); border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-sm); padding:16px 18px; margin-bottom:12px;
+  }
+
+  /* ---------- Medication cards ---------- */
+  .med-card .med-top{display:flex; align-items:baseline; justify-content:space-between; gap:8px;}
+  .med-card .med-name{font-family:'Baloo 2'; font-weight:700; font-size:18px; color:var(--text);}
+  .med-card .med-dose{font-weight:800; font-size:13.5px; color:var(--purple);}
+  .med-card .med-schedule{font-size:13px; color:var(--text-soft); font-weight:700; margin-top:2px;}
+  .med-card .med-tag{
+    display:inline-block; margin-top:6px; background:var(--purple-pale); color:var(--purple-deep);
+    font-size:11.5px; font-weight:800; padding:3px 10px; border-radius:999px;
+  }
+  .med-card .med-times{
+    display:flex; justify-content:space-between; margin-top:12px; padding-top:12px;
+    border-top:1px dashed var(--line); font-size:13px;
+  }
+  .med-card .med-times div{text-align:center; flex:1;}
+  .med-card .med-times .label{color:var(--text-soft); font-weight:700; font-size:11.5px; text-transform:none;}
+  .med-card .med-times .value{font-weight:800; color:var(--text); font-size:14.5px; margin-top:2px;}
+  .med-card .countdown{
+    text-align:center; margin-top:10px; font-weight:800; font-size:15px; color:var(--purple-deep);
+  }
+  .med-card .countdown.due{color:var(--pink-deep);}
+  .med-card .course-remaining{
+    text-align:center; margin-top:6px; font-size:12.5px; color:var(--text-soft); font-weight:700;
+  }
+  .give-btn{
+    margin-top:12px; width:100%; border:none; padding:14px; border-radius:var(--radius-md);
+    background:linear-gradient(135deg, var(--purple), var(--purple-deep)); color:white;
+    font-weight:800; font-size:15px; cursor:pointer; box-shadow: var(--shadow-sm);
+  }
+  .give-btn:active{transform:scale(0.98);}
+  .give-btn.just-given{background:linear-gradient(135deg, #b7a1d9, #9a84c3);}
+
+  /* ---------- Toggle grid buttons (physio/walk/meal) ---------- */
+  .toggle-row{display:flex; gap:10px; flex-wrap:wrap;}
+  .toggle-btn{
+    flex:1; min-width:120px; border:none; background:var(--pink-pale); color:var(--pink-deep);
+    padding:16px 10px; border-radius:var(--radius-md); font-weight:800; font-size:14.5px;
+    cursor:pointer; text-align:center; box-shadow:var(--shadow-sm);
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+  }
+  .toggle-btn .sub{font-size:11.5px; font-weight:700; opacity:0.85;}
+  .toggle-btn.done{background:linear-gradient(135deg, var(--purple), var(--purple-deep)); color:#fff;}
+  .toggle-btn:active{transform:scale(0.97);}
+
+  /* ---------- Care grid ---------- */
+  .care-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .care-btn{
+    border:none; background:var(--card); border:2px solid var(--pink-pale);
+    padding:16px 10px; border-radius:var(--radius-md); cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    box-shadow:var(--shadow-sm);
+  }
+  .care-btn .emoji{font-size:26px;}
+  .care-btn .name{font-weight:800; font-size:13.5px; color:var(--text);}
+  .care-btn .last{font-size:11.5px; color:var(--text-soft); font-weight:700;}
+  .care-btn:active{transform:scale(0.96); border-color:var(--pink);}
+
+  /* ---------- Recent activity ---------- */
+  .activity-item{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 0; border-bottom:1px solid var(--line);
+  }
+  .activity-item:last-child{border-bottom:none;}
+  .activity-item .left .name{font-weight:800; font-size:14.5px;}
+  .activity-item .left .meta{font-size:12px; color:var(--text-soft); font-weight:700;}
+  .activity-item .time{font-weight:800; color:var(--purple-deep); font-size:13.5px; white-space:nowrap;}
+
+  /* ---------- Setup screen ---------- */
+  .setup-screen{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; text-align:center; padding:32px 24px;
+  }
+  .setup-screen h1{font-size:26px; color:var(--purple-deep); margin:20px 0 6px;}
+  .setup-screen p{color:var(--text-soft); font-weight:700; font-size:14.5px; max-width:320px; margin:0 auto;}
+  .setup-screen input{
+    margin-top:26px; width:100%; max-width:300px; padding:14px 16px; border-radius:var(--radius-md);
+    border:2px solid var(--line); font-size:16px; font-family:inherit; text-align:center;
+    background:white; color:var(--text); font-weight:700;
+  }
+  .setup-screen input:focus{outline:none; border-color:var(--purple);}
+  .setup-screen .continue-btn{
+    margin-top:16px; width:100%; max-width:300px; border:none; padding:15px; border-radius:var(--radius-md);
+    background:linear-gradient(135deg, var(--purple), var(--purple-deep)); color:white; font-weight:800;
+    font-size:15.5px; cursor:pointer; box-shadow:var(--shadow);
+  }
+  .setup-screen .quick-names{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:14px; max-width:300px;}
+  .quick-name-chip{
+    border:2px solid var(--purple-pale); background:white; color:var(--purple-deep);
+    padding:7px 14px; border-radius:999px; font-weight:800; font-size:13px; cursor:pointer;
+  }
+
+  /* ---------- History screen ---------- */
+  .history-header{display:flex; align-items:center; gap:10px; margin-bottom:6px;}
+  .back-link{
+    border:none; background:none; color:var(--purple-deep); font-weight:800; font-size:14.5px;
+    cursor:pointer; padding:8px 0; display:flex; align-items:center; gap:4px;
+  }
+  .date-picker-wrap{
+    display:flex; align-items:center; gap:10px; margin: 14px 0 20px;
+    background:white; padding:12px 14px; border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
+  }
+  .date-picker-wrap label{font-weight:800; font-size:13.5px; color:var(--text-soft);}
+  .date-picker-wrap input[type=date]{
+    border:none; font-family:inherit; font-weight:800; color:var(--text); font-size:14.5px; flex:1;
+    background:transparent;
+  }
+  .quick-dates{display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; margin-bottom:16px;}
+  .quick-date-chip{
+    flex-shrink:0; border:2px solid var(--purple-pale); background:white; color:var(--purple-deep);
+    padding:7px 14px; border-radius:999px; font-weight:800; font-size:12.5px; cursor:pointer; white-space:nowrap;
+  }
+  .quick-date-chip.active{background:var(--purple-deep); color:white; border-color:var(--purple-deep);}
+  .hist-empty{text-align:center; color:var(--text-soft); font-weight:700; padding:30px 10px;}
+  .hist-empty img{width:90px; opacity:0.85; margin-bottom:10px;}
+
+  /* ---------- Nav tabs (bottom-less, just header buttons) ---------- */
+  .offline-banner{
+    background:var(--pink-pale); color:var(--pink-deep); font-weight:800; font-size:12.5px;
+    text-align:center; padding:8px; border-radius:999px; margin-bottom:14px;
+  }
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+    background:var(--purple-deep); color:white; padding:11px 22px; border-radius:999px;
+    font-weight:800; font-size:13.5px; box-shadow:var(--shadow); z-index:100;
+    opacity:0; transition:opacity .25s ease, transform .25s ease; pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ SETUP SCREEN ============ -->
+  <div id="setup-screen" class="setup-screen hidden">
+    <img id="setup-beans-img" class="beans-avatar large" src="BeansHeadshot.png" alt="Beans" />
+    <h1>Welcome to Beans' Recovery</h1>
+    <p id="setup-subtitle">Let's set up your profile so we know who is recording Beans' care.</p>
+    <div id="setup-name-step">
+      <p style="margin-top:22px; color:var(--text); font-weight:800; font-size:15px;">What's your name?</p>
+      <input id="name-input" type="text" placeholder="Enter your name" autocomplete="off" />
+      <div class="quick-names">
+        <button class="quick-name-chip" data-name="Evva">Evva</button>
+        <button class="quick-name-chip" data-name="Mom">Mom</button>
+        <button class="quick-name-chip" data-name="Dad">Dad</button>
+        <button class="quick-name-chip" data-name="Sister">Sister</button>
+      </div>
+      <button class="continue-btn" id="continue-btn">Continue</button>
+    </div>
+  </div>
+
+  <!-- ============ MAIN APP ============ -->
+  <div id="main-app" class="hidden">
+    <header class="topbar">
+      <img id="header-beans-img" class="beans-avatar" src="BeansHeadshot.png" alt="Beans" />
+      <div class="brand">
+        <div class="name">Beans' Recovery</div>
+        <div class="user" id="current-user-label">—</div>
+      </div>
+      <button class="icon-btn" id="history-btn" title="History">🕐</button>
+      <button class="icon-btn" id="change-user-btn" title="Change User">👤</button>
+    </header>
+
+    <main>
+      <div id="offline-banner" class="offline-banner hidden">📶 Offline — changes will sync when you're back online</div>
+
+      <!-- ---------- TODAY SCREEN ---------- -->
+      <div id="today-screen">
+        <div class="day-banner">
+          <div class="date" id="today-date">—</div>
+          <div class="today-title">Today</div>
+          <div class="recovery-day" id="recovery-day-label">Recovery Day —</div>
+        </div>
+
+        <section class="block">
+          <div class="block-head">
+            <h2>💊 Medications</h2>
+            <p>Tap "Give" when Beans receives a medication.</p>
+          </div>
+          <div id="medications-list"></div>
+        </section>
+
+        <section class="block">
+          <div class="block-head">
+            <h2>🧘 Physio</h2>
+            <p>4 sessions today</p>
+          </div>
+          <div class="toggle-row" id="physio-list"></div>
+        </section>
+
+        <section class="block">
+          <div class="block-head">
+            <h2>🚶 Walks</h2>
+            <p>2 walks today · 15 minutes each</p>
+          </div>
+          <div class="toggle-row" id="walks-list"></div>
+        </section>
+
+        <section class="block">
+          <div class="block-head">
+            <h2>🍽️ Food</h2>
+            <p>2 meals today</p>
+          </div>
+          <div class="toggle-row" id="meals-list"></div>
+        </section>
+
+        <section class="block">
+          <div class="block-head">
+            <h2>🐾 Care</h2>
+            <p>Record Beans' other care throughout the day.</p>
+          </div>
+          <div class="care-grid" id="care-list"></div>
+        </section>
+
+        <section class="block">
+          <div class="block-head">
+            <h2>🕐 Recent Activity</h2>
+          </div>
+          <div class="card" id="recent-activity-card">
+            <div id="recent-activity-list"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ---------- HISTORY SCREEN ---------- -->
+      <div id="history-screen" class="hidden">
+        <div class="history-header">
+          <button class="back-link" id="back-to-today-btn">← Back to Today</button>
+        </div>
+        <h2 style="color:var(--purple-deep); margin:4px 0 4px;">Beans' History</h2>
+        <div class="date-picker-wrap">
+          <label for="history-date-input">Choose a date</label>
+          <input type="date" id="history-date-input" />
+        </div>
+        <div class="quick-dates">
+          <button class="quick-date-chip" data-offset="0">Today</button>
+          <button class="quick-date-chip" data-offset="-1">Yesterday</button>
+          <button class="quick-date-chip" data-offset="-7">A week ago</button>
+          <button class="quick-date-chip" data-offset="-30">A month ago</button>
+        </div>
+        <div id="history-content"></div>
+      </div>
+    </main>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+/* =========================================================================
+   BEANS' RECOVERY — APP LOGIC
+   =========================================================================
+   SETUP REQUIRED:
+   1. Replace FIREBASE_CONFIG below with your real Firebase project config
+      (Firebase Console → Project Settings → Your apps → SDK setup and config).
+   2. In the Firebase Console, enable:
+        - Firestore Database (production mode)
+        - Authentication → Sign-in method → Anonymous
+   3. Publish the security rules from firestore.rules (provided alongside
+      this file) in Firestore → Rules.
+   4. Put a file named exactly "BeansHeadshot.png" in the same folder as
+      this index.html (or upload it alongside it when you deploy). The app
+      will automatically use it — if it's missing, a cute placeholder is
+      shown instead so the app still works.
+   ========================================================================= */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, signInAnonymously, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs,
+  query, where, orderBy, limit, onSnapshot, Timestamp, serverTimestamp,
+  enableIndexedDbPersistence
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ---- 1. FIREBASE CONFIG (replace with your own project's config) ----
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBgpsMV74xXHEnVbFR2ROSk0-77ke3rXEQ",
+  authDomain: "beans-recovery.firebaseapp.com",
+  projectId: "beans-recovery",
+  storageBucket: "beans-recovery.firebasestorage.app",
+  messagingSenderId: "253575205076",
+  appId: "1:253575205076:web:137608019f2ff8ae52eb41"
+};
+
+let db = null;
+let auth = null;
+let firebaseReady = false;
+
+try {
+  const fbApp = initializeApp(FIREBASE_CONFIG);
+  auth = getAuth(fbApp);
+  db = getFirestore(fbApp);
+  try { enableIndexedDbPersistence(db); } catch (e) { /* multiple tabs open, ignore */ }
+  firebaseReady = true;
+} catch (e) {
+  console.warn("Firebase not configured yet:", e);
+}
+
+// ---- Fallback placeholder image for Beans (used if BeansHeadshot.png is missing) ----
+const PLACEHOLDER_BEANS = "data:image/svg+xml;utf8," + encodeURIComponent(`
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'>
+  <circle cx='100' cy='100' r='100' fill='#EDE3F7'/>
+  <ellipse cx='100' cy='120' rx='55' ry='48' fill='#F2A6C0'/>
+  <ellipse cx='62' cy='70' rx='22' ry='32' fill='#8B6FB3' transform='rotate(-20 62 70)'/>
+  <ellipse cx='138' cy='70' rx='22' ry='32' fill='#8B6FB3' transform='rotate(20 138 70)'/>
+  <circle cx='80' cy='112' r='7' fill='#4A3358'/>
+  <circle cx='120' cy='112' r='7' fill='#4A3358'/>
+  <ellipse cx='100' cy='132' rx='10' ry='7' fill='#4A3358'/>
+  <path d='M85 142 Q100 152 115 142' stroke='#4A3358' stroke-width='4' fill='none' stroke-linecap='round'/>
+</svg>`);
+document.querySelectorAll('img[src="BeansHeadshot.png"]').forEach(img => {
+  img.addEventListener('error', () => { img.src = PLACEHOLDER_BEANS; }, { once:true });
+});
+
+// ---- Medication configuration (data-driven; matches vet instructions exactly) ----
+const MEDICATIONS = [
+  { id: "acetaminophen", name: "Acetaminophen", dose: "¼ tablet", type: "recurring", intervalHours: 8 },
+  { id: "gabapentin",    name: "Gabapentin",    dose: "1 capsule", type: "recurring", intervalHours: 8 },
+  { id: "prazosin",      name: "Prazosin",      dose: "1 tablet", type: "staged",
+    initialIntervalHours: 8, initialDurationHours: 24, laterIntervalHours: 12 },
+  { id: "amoxicillin",   name: "Amoxicillin",   dose: "1 tablet by mouth", type: "limited",
+    intervalHours: 12, courseDurationDays: 3 }
+];
+
+const PHYSIO_SESSIONS = [1,2,3,4].map(n => ({ id: `physio-${n}`, name: `Physio ${n}`, type: "physio" }));
+const WALKS = [1,2].map(n => ({ id: `walk-${n}`, name: `Walk ${n}`, type: "walk" }));
+const MEALS = [1,2].map(n => ({ id: `meal-${n}`, name: `Meal ${n}`, type: "meal" }));
+const CARE_ITEMS = [
+  { id: "bladder", name: "Bladder Expression", emoji: "💧" },
+  { id: "poop", name: "Poop", emoji: "💩" },
+  { id: "diaper", name: "Diaper Change", emoji: "🩲" },
+  { id: "clean-bum", name: "Clean Bum", emoji: "🧼" },
+  { id: "reposition", name: "Reposition", emoji: "🛏️" }
+];
+
+// ---- Local (device-only) state — NOT Beans' data, just "who am I" ----
+const USER_KEY = "beansRecovery.userName";
+let currentUser = localStorage.getItem(USER_KEY) || null;
+
+// ---- Runtime state populated from Firestore listeners ----
+const medState = {};      // medId -> { lastDose, firstDose }
+let todayEvents = [];     // events with timestamp today (physio/walk/meal/care/recent activity)
+let recoveryStartDate = null;
+let unsubscribers = [];
+let historyUnsub = null;
+
+// =========================== UI HELPERS ===========================
+const $ = sel => document.querySelector(sel);
+const $all = sel => Array.from(document.querySelectorAll(sel));
+
+function showToast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+function fmtTime(date) {
+  if (!date) return "—";
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+function fmtDateLong(date) {
+  return date.toLocaleDateString([], { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+}
+function startOfDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
+function endOfDay(d) { const x = new Date(d); x.setHours(23,59,59,999); return x; }
+function isToday(date) {
+  const now = new Date();
+  return date.toDateString() === now.toDateString();
+}
+function tsToDate(ts) {
+  if (!ts) return null;
+  if (ts.toDate) return ts.toDate();
+  if (ts instanceof Date) return ts;
+  return null;
+}
+function countdownString(msRemaining) {
+  if (msRemaining <= 0) return "⚠️ Dose due now";
+  const totalMin = Math.floor(msRemaining / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return `${h}h ${m}m remaining`;
+}
+
+// =========================== SETUP / USER FLOW ===========================
+function initSetupScreen() {
+  $all(".quick-name-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      $("#name-input").value = chip.dataset.name;
+    });
+  });
+  $("#continue-btn").addEventListener("click", () => {
+    const val = $("#name-input").value.trim();
+    if (!val) { showToast("Please enter your name"); return; }
+    localStorage.setItem(USER_KEY, val);
+    currentUser = val;
+    boot();
+  });
+  $("#name-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") $("#continue-btn").click();
+  });
+}
+
+function showSetup() {
+  $("#setup-screen").classList.remove("hidden");
+  $("#main-app").classList.add("hidden");
+  $("#name-input").value = "";
+}
+
+function showMainApp() {
+  $("#setup-screen").classList.add("hidden");
+  $("#main-app").classList.remove("hidden");
+  $("#current-user-label").textContent = currentUser;
+}
+
+$("#change-user-btn").addEventListener("click", () => {
+  showSetup();
+});
+
+// =========================== NAVIGATION ===========================
+$("#history-btn").addEventListener("click", () => {
+  $("#today-screen").classList.add("hidden");
+  $("#history-screen").classList.remove("hidden");
+  const input = $("#history-date-input");
+  input.value = toInputDate(new Date());
+  loadHistoryForDate(new Date());
+  setActiveQuickDate(0);
+});
+$("#back-to-today-btn").addEventListener("click", () => {
+  $("#history-screen").classList.add("hidden");
+  $("#today-screen").classList.remove("hidden");
+  if (historyUnsub) { historyUnsub(); historyUnsub = null; }
+});
+
+function toInputDate(d) {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+$("#history-date-input").addEventListener("change", e => {
+  const [y,m,d] = e.target.value.split("-").map(Number);
+  loadHistoryForDate(new Date(y, m-1, d));
+  setActiveQuickDate(null);
+});
+
+$all(".quick-date-chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    const offset = parseInt(chip.dataset.offset, 10);
+    const d = new Date(); d.setDate(d.getDate() + offset);
+    $("#history-date-input").value = toInputDate(d);
+    loadHistoryForDate(d);
+    setActiveQuickDate(offset);
+  });
+});
+function setActiveQuickDate(offset) {
+  $all(".quick-date-chip").forEach(c => {
+    c.classList.toggle("active", offset !== null && parseInt(c.dataset.offset,10) === offset);
+  });
+}
+
+// =========================== RENDER: TODAY HEADER ===========================
+function renderDateBanner() {
+  const now = new Date();
+  $("#today-date").textContent = fmtDateLong(now);
+  if (recoveryStartDate) {
+    const days = Math.floor((startOfDay(now) - startOfDay(recoveryStartDate)) / 86400000) + 1;
+    $("#recovery-day-label").textContent = `Recovery Day ${Math.max(days,1)}`;
+  }
+}
+
+// =========================== MEDICATIONS ===========================
+function computeMedDisplay(med) {
+  const st = medState[med.id] || {};
+  const last = st.lastDose || null;
+  const first = st.firstDose || null;
+
+  if (med.type === "recurring") {
+    const next = last ? new Date(last.getTime() + med.intervalHours * 3600000) : null;
+    return { last, next, scheduleLabel: `Every ${med.intervalHours} hours`, tag: null, active: true };
+  }
+
+  if (med.type === "staged") {
+    if (!first) {
+      return { last: null, next: null, scheduleLabel: `Every ${med.initialIntervalHours} hours`, tag: "Initial schedule", active: true };
+    }
+    const elapsedSinceStart = (last ? last.getTime() : Date.now()) - first.getTime();
+    const inInitial = elapsedSinceStart < med.initialDurationHours * 3600000;
+    const interval = inInitial ? med.initialIntervalHours : med.laterIntervalHours;
+    const next = last ? new Date(last.getTime() + interval * 3600000) : null;
+    return {
+      last, next,
+      scheduleLabel: inInitial ? `Every ${med.initialIntervalHours} hours` : `Now every ${med.laterIntervalHours} hours`,
+      tag: inInitial ? "Initial schedule" : null,
+      active: true
+    };
+  }
+
+  if (med.type === "limited") {
+    if (!first) {
+      return { last: null, next: null, scheduleLabel: `Every ${med.intervalHours} hours`, tag: `${med.courseDurationDays}-day course`, active: true, courseEnd: null };
+    }
+    const courseEnd = new Date(first.getTime() + med.courseDurationDays * 86400000);
+    const active = Date.now() < courseEnd.getTime();
+    const next = last ? new Date(last.getTime() + med.intervalHours * 3600000) : null;
+    return { last, next, scheduleLabel: `Every ${med.intervalHours} hours`, tag: null, active, courseEnd };
+  }
+}
+
+function renderMedications() {
+  const container = $("#medications-list");
+  container.innerHTML = "";
+  MEDICATIONS.forEach(med => {
+    const disp = computeMedDisplay(med);
+    if (med.type === "limited" && disp.active === false) return; // course finished — hide, but history keeps records
+
+    const card = document.createElement("div");
+    card.className = "card med-card";
+    card.dataset.medId = med.id;
+
+    let courseHtml = "";
+    if (med.type === "limited" && disp.courseEnd) {
+      const remainMs = disp.courseEnd.getTime() - Date.now();
+      const remainDays = Math.max(1, Math.ceil(remainMs / 86400000));
+      courseHtml = `<div class="course-remaining" data-course>Course remaining: ${remainDays} day${remainDays===1?"":"s"}</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="med-top">
+        <span class="med-name">💊 ${med.name}</span>
+        <span class="med-dose">${med.dose}</span>
+      </div>
+      <div class="med-schedule">${disp.scheduleLabel}</div>
+      ${disp.tag ? `<span class="med-tag">${disp.tag}</span>` : ""}
+      <div class="med-times">
+        <div><div class="label">Last given</div><div class="value">${disp.last ? fmtTime(disp.last) : "Not yet"}</div></div>
+        <div><div class="label">Next due</div><div class="value">${disp.next ? fmtTime(disp.next) : "—"}</div></div>
+      </div>
+      <div class="countdown" data-countdown>${disp.next ? countdownString(disp.next - Date.now()) : "Ready whenever you are"}</div>
+      ${courseHtml}
+      <button class="give-btn" data-give="${med.id}">Give ${med.name}</button>
+    `;
+    container.appendChild(card);
+  });
+
+  container.querySelectorAll("[data-give]").forEach(btn => {
+    btn.addEventListener("click", () => giveMedication(btn.dataset.give));
+  });
+}
+
+async function giveMedication(medId) {
+  const med = MEDICATIONS.find(m => m.id === medId);
+  if (!med) return;
+  const btn = document.querySelector(`[data-give="${medId}"]`);
+  if (btn) { btn.disabled = true; btn.classList.add("just-given"); btn.textContent = "Recording…"; }
+  try {
+    await recordEvent({ type: "medication", name: med.name, medicationId: med.id, dose: med.dose });
+    showToast(`${med.name} recorded ✓`);
+  } catch (e) {
+    console.error(e);
+    showToast("Couldn't save — will retry when online");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = `Give ${med.name}`; }
+  }
+}
+
+// tick countdowns every second without a full re-render
+setInterval(() => {
+  document.querySelectorAll(".med-card").forEach(card => {
+    const medId = card.dataset.medId;
+    const med = MEDICATIONS.find(m => m.id === medId);
+    if (!med) return;
+    const disp = computeMedDisplay(med);
+    const el = card.querySelector("[data-countdown]");
+    if (el && disp.next) {
+      const remaining = disp.next - Date.now();
+      el.textContent = countdownString(remaining);
+      el.classList.toggle("due", remaining <= 0);
+    }
+    const courseEl = card.querySelector("[data-course]");
+    if (courseEl && disp.courseEnd) {
+      const remainMs = disp.courseEnd.getTime() - Date.now();
+      const remainDays = Math.max(1, Math.ceil(remainMs / 86400000));
+      courseEl.textContent = `Course remaining: ${remainDays} day${remainDays===1?"":"s"}`;
+    }
+  });
+}, 1000);
+
+// =========================== PHYSIO / WALKS / MEALS ===========================
+function renderToggleGroup(containerSel, items, subLabelFn) {
+  const container = $(containerSel);
+  container.innerHTML = "";
+  items.forEach(item => {
+    const doneToday = todayEvents.find(e => e.type === item.type && e.name === item.name);
+    const btn = document.createElement("button");
+    btn.className = "toggle-btn" + (doneToday ? " done" : "");
+    btn.innerHTML = `<span>${item.name}${doneToday ? " ✓" : ""}</span>` +
+      (doneToday ? `<span class="sub">${fmtTime(doneToday.timestamp)}</span>` : (subLabelFn ? `<span class="sub">${subLabelFn(item)}</span>` : ""));
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await recordEvent({ type: item.type, name: item.name });
+        showToast(`${item.name} recorded ✓`);
+      } catch (e) {
+        console.error(e);
+        showToast("Couldn't save — will retry when online");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    container.appendChild(btn);
+  });
+}
+function renderPhysio() { renderToggleGroup("#physio-list", PHYSIO_SESSIONS); }
+function renderWalks() { renderToggleGroup("#walks-list", WALKS, () => "15 min"); }
+function renderMeals() { renderToggleGroup("#meals-list", MEALS); }
+
+// =========================== CARE ===========================
+const careLastState = {}; // careId -> Date (most recent ever, not just today)
+
+function renderCare() {
+  const container = $("#care-list");
+  container.innerHTML = "";
+  CARE_ITEMS.forEach(item => {
+    const last = careLastState[item.id];
+    const btn = document.createElement("button");
+    btn.className = "care-btn";
+    btn.innerHTML = `
+      <span class="emoji">${item.emoji}</span>
+      <span class="name">${item.name}</span>
+      <span class="last">${last ? "Last: " + fmtTime(last) : "No record yet"}</span>
+    `;
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await recordEvent({ type: "care", name: item.name });
+        showToast(`${item.name} recorded ✓`);
+      } catch (e) {
+        console.error(e);
+        showToast("Couldn't save — will retry when online");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    container.appendChild(btn);
+  });
+}
+
+// =========================== RECENT ACTIVITY ===========================
+function renderRecentActivity() {
+  const list = $("#recent-activity-list");
+  const items = [...todayEvents].sort((a,b) => b.timestamp - a.timestamp).slice(0, 10);
+  if (items.length === 0) {
+    list.innerHTML = `<div style="text-align:center; color:var(--text-soft); font-weight:700; padding:14px 0;">No activity recorded yet today</div>`;
+    return;
+  }
+  list.innerHTML = items.map(ev => `
+    <div class="activity-item">
+      <div class="left">
+        <div class="name">${ev.name}</div>
+        <div class="meta">Recorded by ${ev.user}</div>
+      </div>
+      <div class="time">${fmtTime(ev.timestamp)}</div>
+    </div>
+  `).join("");
+}
+
+// =========================== FIRESTORE: WRITE ===========================
+async function recordEvent({ type, name, medicationId = null, dose = null }) {
+  if (!db) { showToast("Firebase isn't configured yet"); return; }
+  const now = new Date();
+  await addDoc(collection(db, "events"), {
+    type, name, medicationId, dose,
+    user: currentUser,
+    timestamp: Timestamp.fromDate(now),
+    createdAt: serverTimestamp()
+  });
+}
+
+// =========================== FIRESTORE: LISTENERS ===========================
+function clearListeners() {
+  unsubscribers.forEach(u => u && u());
+  unsubscribers = [];
+}
+
+function attachListeners() {
+  clearListeners();
+
+  // Recovery start date (config doc)
+  const recoveryDocRef = doc(db, "config", "recovery");
+  getDoc(recoveryDocRef).then(snap => {
+    if (snap.exists() && snap.data().startDate) {
+      recoveryStartDate = tsToDate(snap.data().startDate);
+    } else {
+      recoveryStartDate = new Date();
+      setDoc(recoveryDocRef, { startDate: Timestamp.fromDate(recoveryStartDate) }, { merge: true });
+    }
+    renderDateBanner();
+  }).catch(console.error);
+
+  // Per-medication last dose + first dose listeners
+  MEDICATIONS.forEach(med => {
+    medState[med.id] = medState[med.id] || {};
+
+    const lastQ = query(
+      collection(db, "events"),
+      where("type", "==", "medication"),
+      where("medicationId", "==", med.id),
+      orderBy("timestamp", "desc"),
+      limit(1)
+    );
+    const unsubLast = onSnapshot(lastQ, snap => {
+      medState[med.id].lastDose = snap.empty ? null : tsToDate(snap.docs[0].data().timestamp);
+      renderMedications();
+    }, err => console.error("med last dose listener", med.id, err));
+    unsubscribers.push(unsubLast);
+
+    if (med.type === "staged" || med.type === "limited") {
+      const firstQ = query(
+        collection(db, "events"),
+        where("type", "==", "medication"),
+        where("medicationId", "==", med.id),
+        orderBy("timestamp", "asc"),
+        limit(1)
+      );
+      const unsubFirst = onSnapshot(firstQ, snap => {
+        medState[med.id].firstDose = snap.empty ? null : tsToDate(snap.docs[0].data().timestamp);
+        renderMedications();
+      }, err => console.error("med first dose listener", med.id, err));
+      unsubscribers.push(unsubFirst);
+    }
+  });
+
+  // Today's events (physio/walk/meal/care/medication) for toggles + recent activity
+  const todayQ = query(
+    collection(db, "events"),
+    where("timestamp", ">=", Timestamp.fromDate(startOfDay(new Date()))),
+    where("timestamp", "<=", Timestamp.fromDate(endOfDay(new Date()))),
+    orderBy("timestamp", "desc")
+  );
+  const unsubToday = onSnapshot(todayQ, snap => {
+    todayEvents = snap.docs.map(d => {
+      const data = d.data();
+      return { ...data, id: d.id, timestamp: tsToDate(data.timestamp) };
+    });
+    renderPhysio();
+    renderWalks();
+    renderMeals();
+    renderRecentActivity();
+  }, err => console.error("today listener", err));
+  unsubscribers.push(unsubToday);
+
+  // Most recent event overall per care item (for "Last: ..." even if not today)
+  CARE_ITEMS.forEach(item => {
+    const q1 = query(
+      collection(db, "events"),
+      where("type", "==", "care"),
+      where("name", "==", item.name),
+      orderBy("timestamp", "desc"),
+      limit(1)
+    );
+    const unsub = onSnapshot(q1, snap => {
+      careLastState[item.id] = snap.empty ? null : tsToDate(snap.docs[0].data().timestamp);
+      renderCare();
+    }, err => console.error("care listener", item.id, err));
+    unsubscribers.push(unsub);
+  });
+}
+
+// =========================== HISTORY SCREEN ===========================
+function loadHistoryForDate(date) {
+  if (historyUnsub) { historyUnsub(); historyUnsub = null; }
+  const content = $("#history-content");
+  content.innerHTML = `<div class="hist-empty">Loading Beans' day…</div>`;
+
+  const q1 = query(
+    collection(db, "events"),
+    where("timestamp", ">=", Timestamp.fromDate(startOfDay(date))),
+    where("timestamp", "<=", Timestamp.fromDate(endOfDay(date))),
+    orderBy("timestamp", "asc")
+  );
+  historyUnsub = onSnapshot(q1, snap => {
+    const events = snap.docs.map(d => {
+      const data = d.data();
+      return { ...data, id: d.id, timestamp: tsToDate(data.timestamp) };
+    });
+    renderHistoryContent(events, date);
+  }, err => {
+    console.error("history listener", err);
+    content.innerHTML = `<div class="hist-empty">Couldn't load history.</div>`;
+  });
+}
+
+function renderHistoryContent(events, date) {
+  const content = $("#history-content");
+  if (events.length === 0) {
+    content.innerHTML = `
+      <div class="hist-empty">
+        <img src="BeansHeadshot.png" alt="" onerror="this.src='${PLACEHOLDER_BEANS}'" />
+        <div>Nothing recorded for ${fmtDateLong(date)} yet.</div>
+      </div>`;
+    return;
+  }
+
+  const groups = {
+    medication: { label: "💊 Medications", items: [] },
+    physio: { label: "🧘 Physio", items: [] },
+    walk: { label: "🚶 Walks", items: [] },
+    meal: { label: "🍽️ Food", items: [] },
+    care: { label: "🐾 Care", items: [] }
+  };
+  events.forEach(ev => { if (groups[ev.type]) groups[ev.type].items.push(ev); });
+
+  content.innerHTML = Object.values(groups).filter(g => g.items.length).map(group => `
+    <section class="block">
+      <div class="block-head"><h2>${group.label}</h2></div>
+      <div class="card">
+        ${group.items.map(ev => `
+          <div class="activity-item">
+            <div class="left">
+              <div class="name">${ev.name}${ev.dose ? ` · ${ev.dose}` : ""}</div>
+              <div class="meta">Recorded by ${ev.user}</div>
+            </div>
+            <div class="time">${fmtTime(ev.timestamp)}</div>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+  `).join("");
+}
+
+// =========================== ONLINE / OFFLINE BANNER ===========================
+function updateOnlineBanner() {
+  $("#offline-banner").classList.toggle("hidden", navigator.onLine);
+}
+window.addEventListener("online", updateOnlineBanner);
+window.addEventListener("offline", updateOnlineBanner);
+
+// =========================== BOOT ===========================
+function boot() {
+  if (!currentUser) { showSetup(); return; }
+  showMainApp();
+  renderDateBanner();
+  renderMedications();
+  renderPhysio();
+  renderWalks();
+  renderMeals();
+  renderCare();
+  renderRecentActivity();
+  updateOnlineBanner();
+
+  if (!firebaseReady) {
+    showToast("Add your Firebase config in index.html to sync data");
+    return;
+  }
+  if (auth) {
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        attachListeners();
+      } else {
+        signInAnonymously(auth).catch(err => {
+          console.error("anon sign-in failed", err);
+          showToast("Couldn't connect to Firebase — check your config");
+        });
+      }
+    });
+  }
+}
+
+initSetupScreen();
+boot();
+</script>
+</body>
+</html>
