@@ -6,6 +6,7 @@
 <title>Beans' Recovery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
   :root{
     --bg: #FBF1F7;
@@ -208,6 +209,27 @@
   .hist-empty{text-align:center; color:var(--text-soft); font-weight:700; padding:30px 10px;}
   .hist-empty img{width:90px; opacity:0.85; margin-bottom:10px;}
 
+  /* ---------- Weight ---------- */
+  .weight-row{display:flex; gap:8px; margin-top:12px;}
+  .weight-row input{
+    flex:1; padding:12px 14px; border-radius:var(--radius-md); border:2px solid var(--line);
+    font-family:inherit; font-size:15px; font-weight:800; color:var(--text); background:white;
+  }
+  .weight-row input:focus{outline:none; border-color:var(--purple);}
+  .weight-row select{
+    padding:12px 10px; border-radius:var(--radius-md); border:2px solid var(--line);
+    font-family:inherit; font-weight:800; color:var(--text); background:white;
+  }
+  .weight-log-btn{
+    border:none; padding:0 18px; border-radius:var(--radius-md);
+    background:linear-gradient(135deg, var(--purple), var(--purple-deep)); color:white;
+    font-weight:800; font-size:14px; cursor:pointer;
+  }
+  .weight-log-btn:active{transform:scale(0.97);}
+  .weight-chart-card{margin-bottom:18px;}
+  .weight-chart-wrap{position:relative; height:200px; margin-top:8px;}
+  .weight-empty{text-align:center; color:var(--text-soft); font-weight:700; font-size:13.5px; padding:20px 0;}
+
   /* ---------- Nav tabs (bottom-less, just header buttons) ---------- */
   .offline-banner{
     background:var(--pink-pale); color:var(--pink-deep); font-weight:800; font-size:12.5px;
@@ -310,6 +332,14 @@
 
         <section class="block">
           <div class="block-head">
+            <h2>⚖️ Weight</h2>
+            <p>Log Beans' weight to keep an eye on her recovery.</p>
+          </div>
+          <div class="card" id="weight-card"></div>
+        </section>
+
+        <section class="block">
+          <div class="block-head">
             <h2>🕐 Recent Activity</h2>
           </div>
           <div class="card" id="recent-activity-card">
@@ -324,6 +354,19 @@
           <button class="back-link" id="back-to-today-btn">← Back to Today</button>
         </div>
         <h2 style="color:var(--purple-deep); margin:4px 0 4px;">Beans' History</h2>
+
+        <section class="block weight-chart-card">
+          <div class="block-head">
+            <h2>📈 Weight Over Time</h2>
+          </div>
+          <div class="card">
+            <div class="weight-chart-wrap">
+              <canvas id="weight-chart"></canvas>
+            </div>
+            <div id="weight-chart-empty" class="weight-empty hidden">No weight logged yet — add one from the Today screen.</div>
+          </div>
+        </section>
+
         <div class="date-picker-wrap">
           <label for="history-date-input">Choose a date</label>
           <input type="date" id="history-date-input" />
@@ -531,11 +574,13 @@ $("#history-btn").addEventListener("click", () => {
   input.value = toInputDate(new Date());
   loadHistoryForDate(new Date());
   setActiveQuickDate(0);
+  attachWeightChartListener();
 });
 $("#back-to-today-btn").addEventListener("click", () => {
   $("#history-screen").classList.add("hidden");
   $("#today-screen").classList.remove("hidden");
   if (historyUnsub) { historyUnsub(); historyUnsub = null; }
+  if (weightChartUnsub) { weightChartUnsub(); weightChartUnsub = null; }
 });
 
 function toInputDate(d) {
@@ -766,6 +811,44 @@ setInterval(() => {
   }
 }, 1000);
 
+// =========================== WEIGHT ===========================
+let lastWeight = null; // { value, unit, timestamp }
+
+function renderWeight() {
+  const card = $("#weight-card");
+  card.innerHTML = `
+    <div class="med-schedule" style="font-size:14px;">
+      ${lastWeight ? `Last: <strong style="color:var(--text);">${lastWeight.value} ${lastWeight.unit}</strong> on ${fmtTime(lastWeight.timestamp)}, ${lastWeight.timestamp.toLocaleDateString([], { month: "short", day: "numeric" })}` : "No weight logged yet"}
+    </div>
+    <div class="weight-row">
+      <input type="number" step="0.1" inputmode="decimal" id="weight-input" placeholder="e.g. 42.5" />
+      <select id="weight-unit">
+        <option value="lbs" selected>lbs</option>
+        <option value="kg">kg</option>
+      </select>
+      <button class="weight-log-btn" id="weight-log-btn">Log</button>
+    </div>
+  `;
+  $("#weight-log-btn").addEventListener("click", async () => {
+    const input = $("#weight-input");
+    const val = parseFloat(input.value);
+    if (isNaN(val) || val <= 0) { showToast("Enter a valid weight"); return; }
+    const unit = $("#weight-unit").value;
+    const btn = $("#weight-log-btn");
+    btn.disabled = true;
+    try {
+      await recordEvent({ type: "weight", name: "Weight", value: val, unit });
+      input.value = "";
+      showToast(`Weight logged: ${val} ${unit} ✓`);
+    } catch (e) {
+      console.error(e);
+      showToast("Couldn't save — will retry when online");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
 function renderCare() {
   const container = $("#care-list");
   container.innerHTML = "";
@@ -814,11 +897,11 @@ function renderRecentActivity() {
 }
 
 // =========================== FIRESTORE: WRITE ===========================
-async function recordEvent({ type, name, medicationId = null, dose = null, side = null }) {
+async function recordEvent({ type, name, medicationId = null, dose = null, side = null, value = null, unit = null }) {
   if (!db) { showToast("Firebase isn't configured yet"); return; }
   const now = new Date();
   await addDoc(collection(db, "events"), {
-    type, name, medicationId, dose, side,
+    type, name, medicationId, dose, side, value, unit,
     user: currentUser,
     timestamp: Timestamp.fromDate(now),
     createdAt: serverTimestamp()
@@ -934,9 +1017,98 @@ function attachListeners() {
     renderReposition();
   }, err => console.error("reposition listener", err));
   unsubscribers.push(unsubRepo);
+
+  // Most recent weight entry (for the Today screen card)
+  const weightQ = query(
+    collection(db, "events"),
+    where("type", "==", "weight"),
+    orderBy("timestamp", "desc"),
+    limit(1)
+  );
+  const unsubWeight = onSnapshot(weightQ, snap => {
+    if (snap.empty) { lastWeight = null; }
+    else {
+      const data = snap.docs[0].data();
+      lastWeight = { value: data.value, unit: data.unit, timestamp: tsToDate(data.timestamp) };
+    }
+    renderWeight();
+  }, err => console.error("weight listener", err));
+  unsubscribers.push(unsubWeight);
 }
 
 // =========================== HISTORY SCREEN ===========================
+let weightChartUnsub = null;
+let weightChartInstance = null;
+
+function attachWeightChartListener() {
+  if (weightChartUnsub) return; // already listening
+  const q1 = query(
+    collection(db, "events"),
+    where("type", "==", "weight"),
+    orderBy("timestamp", "asc")
+  );
+  weightChartUnsub = onSnapshot(q1, snap => {
+    const points = snap.docs.map(d => {
+      const data = d.data();
+      return { timestamp: tsToDate(data.timestamp), value: data.value, unit: data.unit };
+    });
+    renderWeightChart(points);
+  }, err => console.error("weight chart listener", err));
+}
+
+function renderWeightChart(points) {
+  const canvas = $("#weight-chart");
+  const emptyEl = $("#weight-chart-empty");
+
+  if (!points.length) {
+    canvas.classList.add("hidden");
+    emptyEl.classList.remove("hidden");
+    if (weightChartInstance) { weightChartInstance.destroy(); weightChartInstance = null; }
+    return;
+  }
+  canvas.classList.remove("hidden");
+  emptyEl.classList.add("hidden");
+
+  const unit = points[points.length - 1].unit || "lbs";
+  const labels = points.map(p => p.timestamp.toLocaleDateString([], { month: "short", day: "numeric" }));
+  const data = points.map(p => p.value);
+
+  if (weightChartInstance) {
+    weightChartInstance.data.labels = labels;
+    weightChartInstance.data.datasets[0].data = data;
+    weightChartInstance.data.datasets[0].label = `Weight (${unit})`;
+    weightChartInstance.update();
+    return;
+  }
+
+  weightChartInstance = new Chart(canvas.getContext("2d"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: `Weight (${unit})`,
+        data,
+        borderColor: "#8B6FB3",
+        backgroundColor: "rgba(139,111,179,0.12)",
+        pointBackgroundColor: "#E8749A",
+        pointRadius: 4,
+        borderWidth: 3,
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: "#8C7A9B", font: { family: "Nunito", weight: "700" } } },
+        y: { grid: { color: "#F0DEEC" }, ticks: { color: "#8C7A9B", font: { family: "Nunito", weight: "700" } } }
+      }
+    }
+  });
+}
+
 function loadHistoryForDate(date) {
   if (historyUnsub) { historyUnsub(); historyUnsub = null; }
   const content = $("#history-content");
@@ -976,7 +1148,8 @@ function renderHistoryContent(events, date) {
     physio: { label: "🧘 Physio", items: [] },
     walk: { label: "🚶 Walks", items: [] },
     meal: { label: "🍽️ Food", items: [] },
-    care: { label: "🐾 Care", items: [] }
+    care: { label: "🐾 Care", items: [] },
+    weight: { label: "⚖️ Weight", items: [] }
   };
   events.forEach(ev => { if (groups[ev.type]) groups[ev.type].items.push(ev); });
 
@@ -987,7 +1160,7 @@ function renderHistoryContent(events, date) {
         ${group.items.map(ev => `
           <div class="activity-item">
             <div class="left">
-              <div class="name">${ev.name}${ev.dose ? ` · ${ev.dose}` : ""}${ev.side ? ` · ${ev.side === "left" ? "Left" : "Right"} side` : ""}</div>
+              <div class="name">${ev.name}${ev.dose ? ` · ${ev.dose}` : ""}${ev.side ? ` · ${ev.side === "left" ? "Left" : "Right"} side` : ""}${ev.value ? ` · ${ev.value} ${ev.unit}` : ""}</div>
               <div class="meta">Recorded by ${ev.user}</div>
             </div>
             <div class="time">${fmtTime(ev.timestamp)}</div>
@@ -1016,6 +1189,7 @@ function boot() {
   renderMeals();
   renderCare();
   renderReposition();
+  renderWeight();
   renderRecentActivity();
   updateOnlineBanner();
 
