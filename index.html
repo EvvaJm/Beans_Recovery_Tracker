@@ -118,6 +118,18 @@
   .med-card .course-remaining{
     text-align:center; margin-top:6px; font-size:12.5px; color:var(--text-soft); font-weight:700;
   }
+
+  /* ---------- Medicine-bottle colour coding ---------- */
+  .med-card{border-left:8px solid transparent;}
+  .med-card[data-med-id="acetaminophen"]{border-left-color:#5B8DEF; background:#F1F5FE;}
+  .med-card[data-med-id="gabapentin"]{border-left-color:#EF7FA6; background:#FDF1F6;}
+  .med-card[data-med-id="prazosin"]{border-left-color:#E3B23C; background:#FEFAEC;}
+  .med-card[data-med-id="amoxicillin"]{border-left-color:#4CAF7D; background:#F1FAF5;}
+  .med-card[data-med-id="acetaminophen"] .give-btn{background:linear-gradient(135deg, #5B8DEF, #3E6FD1);}
+  .med-card[data-med-id="gabapentin"] .give-btn{background:linear-gradient(135deg, #EF7FA6, #DB5A85);}
+  .med-card[data-med-id="prazosin"] .give-btn{background:linear-gradient(135deg, #E3B23C, #C7961F);}
+  .med-card[data-med-id="amoxicillin"] .give-btn{background:linear-gradient(135deg, #4CAF7D, #369260);}
+
   .give-btn{
     margin-top:12px; width:100%; border:none; padding:14px; border-radius:var(--radius-md);
     background:linear-gradient(135deg, var(--purple), var(--purple-deep)); color:white;
