@@ -242,6 +242,34 @@
   .weight-chart-wrap{position:relative; height:200px; margin-top:8px;}
   .weight-empty{text-align:center; color:var(--text-soft); font-weight:700; font-size:13.5px; padding:20px 0;}
 
+  /* ---------- Time Outside ---------- */
+  .outside-track{
+    position:relative; height:30px; background:var(--purple-pale); border-radius:999px;
+    margin-top:18px; margin-left:2px; margin-right:2px;
+  }
+  .outside-fill{
+    position:absolute; top:0; left:0; height:100%; border-radius:999px;
+    background:linear-gradient(90deg, var(--pink), var(--purple)); transition:width .4s ease;
+  }
+  .outside-marker{
+    position:absolute; top:50%; width:34px; height:34px; border-radius:50%;
+    transform:translate(-50%,-50%); border:3px solid white; object-fit:cover;
+    box-shadow:0 3px 10px rgba(139,111,179,0.35); transition:left .4s ease; background:var(--purple-pale);
+  }
+  .outside-goal-text{
+    display:flex; justify-content:space-between; margin-top:10px; font-size:12.5px;
+    font-weight:800; color:var(--text-soft);
+  }
+  .outside-status{text-align:center; font-weight:800; color:var(--purple-deep); font-size:14px; margin-top:8px;}
+  .outside-status.goal-reached{color:var(--pink-deep);}
+  .outside-btn{
+    margin-top:14px; width:100%; border:none; padding:14px; border-radius:var(--radius-md);
+    font-weight:800; font-size:15px; cursor:pointer; box-shadow:var(--shadow-sm); color:white;
+  }
+  .outside-btn.start{background:linear-gradient(135deg, var(--purple), var(--purple-deep));}
+  .outside-btn.stop{background:linear-gradient(135deg, #E3B23C, #C7961F);}
+  .outside-btn:active{transform:scale(0.98);}
+
   /* ---------- Nav tabs (bottom-less, just header buttons) ---------- */
   .offline-banner{
     background:var(--pink-pale); color:var(--pink-deep); font-weight:800; font-size:12.5px;
@@ -327,6 +355,14 @@
 
         <section class="block">
           <div class="block-head">
+            <h2>☀️ Time Outside</h2>
+            <p>Minimum 30 minutes a day</p>
+          </div>
+          <div class="card" id="outside-card"></div>
+        </section>
+
+        <section class="block">
+          <div class="block-head">
             <h2>🍽️ Food</h2>
             <p>2 meals today</p>
           </div>
@@ -338,7 +374,6 @@
             <h2>🐾 Care</h2>
             <p>Record Beans' other care throughout the day.</p>
           </div>
-          <div class="card" id="reposition-card"></div>
           <div class="care-grid" id="care-list"></div>
         </section>
 
@@ -470,8 +505,8 @@ document.querySelectorAll('img[src="BeansHeadshot.png"]').forEach(img => {
 const MEDICATIONS = [
   { id: "acetaminophen", name: "Acetaminophen", dose: "¼ tablet", type: "recurring", intervalHours: 8 },
   { id: "gabapentin",    name: "Gabapentin",    dose: "1 capsule", type: "recurring", intervalHours: 8 },
-  { id: "prazosin",      name: "Prazosin",      dose: "1 tablet", type: "staged",
-    initialIntervalHours: 8, initialDurationHours: 24, laterIntervalHours: 12 },
+  { id: "prazosin",      name: "Prazosin",      dose: "1 tablet", type: "daily-twice",
+    intervalHours: 8, dosesPerDay: 2 },
   { id: "amoxicillin",   name: "Amoxicillin",   dose: "1 tablet by mouth", type: "limited",
     intervalHours: 12, courseDurationDays: 3 }
 ];
@@ -483,7 +518,8 @@ const CARE_ITEMS = [
   { id: "bladder", name: "Bladder Expression", emoji: "💧" },
   { id: "poop", name: "Poop", emoji: "💩" },
   { id: "diaper", name: "Diaper Change", emoji: "🩲" },
-  { id: "clean-bum", name: "Clean Bum", emoji: "🧼" }
+  { id: "clean-bum", name: "Clean Bum", emoji: "🧼" },
+  { id: "reposition", name: "Reposition", emoji: "🛏️" }
 ];
 
 // ---- Local (device-only) state — NOT Beans' data, just "who am I" ----
@@ -587,6 +623,7 @@ $("#history-btn").addEventListener("click", () => {
   loadHistoryForDate(new Date());
   setActiveQuickDate(0);
   attachWeightChartListener();
+  requestAnimationFrame(() => { if (weightChartInstance) weightChartInstance.resize(); });
 });
 $("#back-to-today-btn").addEventListener("click", () => {
   $("#history-screen").classList.add("hidden");
@@ -642,20 +679,21 @@ function computeMedDisplay(med) {
     return { last, next, scheduleLabel: `Every ${med.intervalHours} hours`, tag: null, active: true };
   }
 
-  if (med.type === "staged") {
-    if (!first) {
-      return { last: null, next: null, scheduleLabel: `Every ${med.initialIntervalHours} hours`, tag: "Initial schedule", active: true };
+  if (med.type === "daily-twice") {
+    const doses = todayEvents
+      .filter(e => e.type === "medication" && e.medicationId === med.id)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    if (doses.length === 0) {
+      return { last: null, next: null, scheduleLabel: `${med.dosesPerDay}x daily · ${med.intervalHours} hours apart`, tag: "Not given yet today", active: true, doneForDay: false };
     }
-    const elapsedSinceStart = (last ? last.getTime() : Date.now()) - first.getTime();
-    const inInitial = elapsedSinceStart < med.initialDurationHours * 3600000;
-    const interval = inInitial ? med.initialIntervalHours : med.laterIntervalHours;
-    const next = last ? new Date(last.getTime() + interval * 3600000) : null;
-    return {
-      last, next,
-      scheduleLabel: inInitial ? `Every ${med.initialIntervalHours} hours` : `Now every ${med.laterIntervalHours} hours`,
-      tag: inInitial ? "Initial schedule" : null,
-      active: true
-    };
+    if (doses.length < med.dosesPerDay) {
+      const last = doses[doses.length - 1].timestamp;
+      const next = new Date(last.getTime() + med.intervalHours * 3600000);
+      return { last, next, scheduleLabel: `Every ${med.intervalHours} hours`, tag: `${doses.length} of ${med.dosesPerDay} doses today`, active: true, doneForDay: false };
+    }
+    const last = doses[doses.length - 1].timestamp;
+    return { last, next: null, scheduleLabel: `${med.dosesPerDay}x daily`, tag: "✅ Done for today", active: true, doneForDay: true };
   }
 
   if (med.type === "limited") {
@@ -696,11 +734,11 @@ function renderMedications() {
       ${disp.tag ? `<span class="med-tag">${disp.tag}</span>` : ""}
       <div class="med-times">
         <div><div class="label">Last given</div><div class="value">${disp.last ? fmtTime(disp.last) : "Not yet"}</div></div>
-        <div><div class="label">Next due</div><div class="value">${disp.next ? fmtTime(disp.next) : "—"}</div></div>
+        <div><div class="label">Next due</div><div class="value">${disp.doneForDay ? "Tomorrow" : (disp.next ? fmtTime(disp.next) : "—")}</div></div>
       </div>
-      <div class="countdown" data-countdown>${disp.next ? countdownString(disp.next - Date.now()) : "Ready whenever you are"}</div>
+      <div class="countdown" data-countdown>${disp.doneForDay ? "✅ Done for today — resets at midnight" : (disp.next ? countdownString(disp.next - Date.now()) : "Ready whenever you are")}</div>
       ${courseHtml}
-      <button class="give-btn" data-give="${med.id}">Give ${med.name}</button>
+      ${disp.doneForDay ? "" : `<button class="give-btn" data-give="${med.id}">Give ${med.name}</button>`}
     `;
     container.appendChild(card);
   });
@@ -779,49 +817,6 @@ function renderMeals() { renderToggleGroup("#meals-list", MEALS); }
 
 // =========================== CARE ===========================
 const careLastState = {}; // careId -> Date (most recent ever, not just today)
-const repositionState = { side: null, timestamp: null };
-
-function renderReposition() {
-  const card = $("#reposition-card");
-  const { side, timestamp } = repositionState;
-  const statusHtml = side
-    ? `${side === "left" ? "Left" : "Right"} side · <span id="reposition-elapsed">${elapsedString(Date.now() - timestamp.getTime())}</span>`
-    : `Not recorded yet`;
-
-  card.innerHTML = `
-    <div class="med-top" style="margin-bottom:2px;">
-      <span class="med-name">🛏️ Reposition</span>
-    </div>
-    <div class="med-schedule" style="font-size:14px;">${statusHtml}</div>
-    <div class="toggle-row" style="margin-top:12px;">
-      <button class="toggle-btn ${side === "left" ? "done" : ""}" data-side="left">Now on Left</button>
-      <button class="toggle-btn ${side === "right" ? "done" : ""}" data-side="right">Now on Right</button>
-    </div>
-  `;
-  card.querySelectorAll("[data-side]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const sideVal = btn.dataset.side;
-      btn.disabled = true;
-      try {
-        await recordEvent({ type: "care", name: "Reposition", side: sideVal });
-        showToast(`Flipped to ${sideVal} side ✓`);
-      } catch (e) {
-        console.error(e);
-        showToast("Couldn't save — will retry when online");
-      } finally {
-        btn.disabled = false;
-      }
-    });
-  });
-}
-
-// tick the "since last flip" timer every second without a full re-render
-setInterval(() => {
-  const el = $("#reposition-elapsed");
-  if (el && repositionState.timestamp) {
-    el.textContent = elapsedString(Date.now() - repositionState.timestamp.getTime());
-  }
-}, 1000);
 
 // =========================== WEIGHT ===========================
 let lastWeight = null; // { value, unit, timestamp }
@@ -889,6 +884,92 @@ function renderCare() {
   });
 }
 
+// =========================== TIME OUTSIDE ===========================
+const OUTSIDE_GOAL_MIN = 30;
+const outsideSession = { active: false, startedAt: null, startedBy: null }; // shared "currently outside" state
+
+function computeOutsideMinutesToday() {
+  const completed = todayEvents
+    .filter(e => e.type === "outside")
+    .reduce((sum, e) => sum + (e.value || 0), 0);
+  let liveMinutes = 0;
+  if (outsideSession.active && outsideSession.startedAt) {
+    liveMinutes = (Date.now() - outsideSession.startedAt.getTime()) / 60000;
+  }
+  return completed + liveMinutes;
+}
+
+function renderOutside() {
+  const card = $("#outside-card");
+  const minutes = computeOutsideMinutesToday();
+  const pct = Math.min(100, (minutes / OUTSIDE_GOAL_MIN) * 100);
+  const reached = minutes >= OUTSIDE_GOAL_MIN;
+  const displayMin = Math.floor(minutes);
+
+  let statusText;
+  if (outsideSession.active) {
+    const who = outsideSession.startedBy && outsideSession.startedBy !== currentUser ? ` (started by ${outsideSession.startedBy})` : "";
+    statusText = `🐾 Outside now${who} · ${elapsedString(Date.now() - outsideSession.startedAt.getTime())} so far`;
+  } else if (reached) {
+    statusText = "🎉 Goal reached for today!";
+  } else {
+    statusText = `${Math.max(1, Math.ceil(OUTSIDE_GOAL_MIN - minutes))} min to go`;
+  }
+
+  card.innerHTML = `
+    <div class="outside-track">
+      <div class="outside-fill" style="width:${pct}%;"></div>
+      <img class="outside-marker" src="BeansHeadshot.png" alt="" style="left:${pct}%;" />
+    </div>
+    <div class="outside-goal-text">
+      <span>${displayMin} / ${OUTSIDE_GOAL_MIN} min today</span>
+      <span>${reached ? "✅ Goal met" : ""}</span>
+    </div>
+    <div class="outside-status ${reached ? "goal-reached" : ""}">${statusText}</div>
+    <button class="outside-btn ${outsideSession.active ? "stop" : "start"}" id="outside-toggle-btn">
+      ${outsideSession.active ? "Stop — Bring Beans Inside" : "Start — Beans Is Outside"}
+    </button>
+  `;
+  card.querySelector(".outside-marker").addEventListener("error", function () { this.src = PLACEHOLDER_BEANS; }, { once: true });
+  $("#outside-toggle-btn").addEventListener("click", async () => {
+    const btn = $("#outside-toggle-btn");
+    btn.disabled = true;
+    try {
+      if (outsideSession.active) {
+        await stopOutside();
+        showToast("Welcome back inside ✓");
+      } else {
+        await startOutside();
+        showToast("Outside time started");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Couldn't save — will retry when online");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+async function startOutside() {
+  if (!db) { showToast("Firebase isn't configured yet"); return; }
+  await setDoc(doc(db, "state", "outsideSession"), {
+    active: true,
+    startedAt: Timestamp.fromDate(new Date()),
+    startedBy: currentUser
+  });
+}
+
+async function stopOutside() {
+  if (!db || !outsideSession.active || !outsideSession.startedAt) return;
+  const durationMin = Math.max(1, Math.round((Date.now() - outsideSession.startedAt.getTime()) / 60000));
+  await recordEvent({ type: "outside", name: "Time Outside", value: durationMin, unit: "min" });
+  await setDoc(doc(db, "state", "outsideSession"), { active: false, startedAt: null, startedBy: null });
+}
+
+// live-update the progress bar and elapsed text while a session is active
+setInterval(() => { if (outsideSession.active) renderOutside(); }, 1000);
+
 // =========================== RECENT ACTIVITY ===========================
 function renderRecentActivity() {
   const list = $("#recent-activity-list");
@@ -900,7 +981,7 @@ function renderRecentActivity() {
   list.innerHTML = items.map(ev => `
     <div class="activity-item">
       <div class="left">
-        <div class="name">${ev.name}${ev.side ? ` · ${ev.side === "left" ? "Left" : "Right"} side` : ""}</div>
+        <div class="name">${ev.name}</div>
         <div class="meta">Recorded by ${ev.user}</div>
       </div>
       <div class="time">${fmtTime(ev.timestamp)}</div>
@@ -909,11 +990,11 @@ function renderRecentActivity() {
 }
 
 // =========================== FIRESTORE: WRITE ===========================
-async function recordEvent({ type, name, medicationId = null, dose = null, side = null, value = null, unit = null }) {
+async function recordEvent({ type, name, medicationId = null, dose = null, value = null, unit = null }) {
   if (!db) { showToast("Firebase isn't configured yet"); return; }
   const now = new Date();
   await addDoc(collection(db, "events"), {
-    type, name, medicationId, dose, side, value, unit,
+    type, name, medicationId, dose, value, unit,
     user: currentUser,
     timestamp: Timestamp.fromDate(now),
     createdAt: serverTimestamp()
@@ -924,7 +1005,47 @@ async function recordEvent({ type, name, medicationId = null, dose = null, side 
 function clearListeners() {
   unsubscribers.forEach(u => u && u());
   unsubscribers = [];
+  if (todayUnsub) { todayUnsub(); todayUnsub = null; }
 }
+
+let todayUnsub = null;
+let currentDayKey = new Date().toDateString();
+
+// Re-subscribes the "today" events query to the current calendar day.
+// Called on load, and again automatically whenever midnight passes while
+// the app is left open, so daily items (Prazosin's 2-a-day count, Physio,
+// Walks, Meals) reset without anyone needing to reload the page.
+function attachTodayListener() {
+  if (todayUnsub) { todayUnsub(); todayUnsub = null; }
+  const todayQ = query(
+    collection(db, "events"),
+    where("timestamp", ">=", Timestamp.fromDate(startOfDay(new Date()))),
+    where("timestamp", "<=", Timestamp.fromDate(endOfDay(new Date()))),
+    orderBy("timestamp", "desc")
+  );
+  todayUnsub = onSnapshot(todayQ, snap => {
+    todayEvents = snap.docs.map(d => {
+      const data = d.data();
+      return { ...data, id: d.id, timestamp: tsToDate(data.timestamp) };
+    });
+    renderPhysio();
+    renderWalks();
+    renderMeals();
+    renderRecentActivity();
+    renderMedications(); // daily-twice meds (Prazosin) depend on today's doses
+    renderOutside(); // completed sessions today affect the progress bar
+  }, err => console.error("today listener", err));
+}
+
+// Check every 30s for a day change (covers phones left open overnight)
+setInterval(() => {
+  const nowKey = new Date().toDateString();
+  if (nowKey !== currentDayKey) {
+    currentDayKey = nowKey;
+    renderDateBanner();
+    if (db) attachTodayListener();
+  }
+}, 30000);
 
 function attachListeners() {
   clearListeners();
@@ -958,7 +1079,7 @@ function attachListeners() {
     }, err => console.error("med last dose listener", med.id, err));
     unsubscribers.push(unsubLast);
 
-    if (med.type === "staged" || med.type === "limited") {
+    if (med.type === "limited") {
       const firstQ = query(
         collection(db, "events"),
         where("type", "==", "medication"),
@@ -975,23 +1096,7 @@ function attachListeners() {
   });
 
   // Today's events (physio/walk/meal/care/medication) for toggles + recent activity
-  const todayQ = query(
-    collection(db, "events"),
-    where("timestamp", ">=", Timestamp.fromDate(startOfDay(new Date()))),
-    where("timestamp", "<=", Timestamp.fromDate(endOfDay(new Date()))),
-    orderBy("timestamp", "desc")
-  );
-  const unsubToday = onSnapshot(todayQ, snap => {
-    todayEvents = snap.docs.map(d => {
-      const data = d.data();
-      return { ...data, id: d.id, timestamp: tsToDate(data.timestamp) };
-    });
-    renderPhysio();
-    renderWalks();
-    renderMeals();
-    renderRecentActivity();
-  }, err => console.error("today listener", err));
-  unsubscribers.push(unsubToday);
+  attachTodayListener();
 
   // Most recent event overall per care item (for "Last: ..." even if not today)
   CARE_ITEMS.forEach(item => {
@@ -1009,26 +1114,22 @@ function attachListeners() {
     unsubscribers.push(unsub);
   });
 
-  // Most recent Reposition event (tracks which side + when, for the live "since last flip" timer)
-  const repoQ = query(
-    collection(db, "events"),
-    where("type", "==", "care"),
-    where("name", "==", "Reposition"),
-    orderBy("timestamp", "desc"),
-    limit(1)
-  );
-  const unsubRepo = onSnapshot(repoQ, snap => {
-    if (snap.empty) {
-      repositionState.side = null;
-      repositionState.timestamp = null;
+  // Shared "currently outside" session (so all family phones see it live)
+  const outsideStateRef = doc(db, "state", "outsideSession");
+  const unsubOutsideState = onSnapshot(outsideStateRef, snap => {
+    if (snap.exists() && snap.data().active) {
+      const data = snap.data();
+      outsideSession.active = true;
+      outsideSession.startedAt = tsToDate(data.startedAt);
+      outsideSession.startedBy = data.startedBy || null;
     } else {
-      const data = snap.docs[0].data();
-      repositionState.side = data.side || null;
-      repositionState.timestamp = tsToDate(data.timestamp);
+      outsideSession.active = false;
+      outsideSession.startedAt = null;
+      outsideSession.startedBy = null;
     }
-    renderReposition();
-  }, err => console.error("reposition listener", err));
-  unsubscribers.push(unsubRepo);
+    renderOutside();
+  }, err => console.error("outside state listener", err));
+  unsubscribers.push(unsubOutsideState);
 
   // Most recent weight entry (for the Today screen card)
   const weightQ = query(
@@ -1080,6 +1181,14 @@ function renderWeightChart(points) {
   }
   canvas.classList.remove("hidden");
   emptyEl.classList.add("hidden");
+
+  // If the canvas hasn't been laid out yet (e.g. the History screen just
+  // became visible this same tick), Chart.js would measure it as 0×0 and
+  // draw nothing. Wait a frame and try again so it always gets a real size.
+  if (canvas.clientWidth === 0) {
+    requestAnimationFrame(() => renderWeightChart(points));
+    return;
+  }
 
   const unit = points[points.length - 1].unit || "lbs";
   const labels = points.map(p => p.timestamp.toLocaleDateString([], { month: "short", day: "numeric" }));
@@ -1172,7 +1281,7 @@ function renderHistoryContent(events, date) {
         ${group.items.map(ev => `
           <div class="activity-item">
             <div class="left">
-              <div class="name">${ev.name}${ev.dose ? ` · ${ev.dose}` : ""}${ev.side ? ` · ${ev.side === "left" ? "Left" : "Right"} side` : ""}${ev.value ? ` · ${ev.value} ${ev.unit}` : ""}</div>
+              <div class="name">${ev.name}${ev.dose ? ` · ${ev.dose}` : ""}${ev.value ? ` · ${ev.value} ${ev.unit}` : ""}</div>
               <div class="meta">Recorded by ${ev.user}</div>
             </div>
             <div class="time">${fmtTime(ev.timestamp)}</div>
@@ -1198,9 +1307,9 @@ function boot() {
   renderMedications();
   renderPhysio();
   renderWalks();
+  renderOutside();
   renderMeals();
   renderCare();
-  renderReposition();
   renderWeight();
   renderRecentActivity();
   updateOnlineBanner();
