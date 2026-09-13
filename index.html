@@ -123,11 +123,9 @@
   .med-card[data-med-id="acetaminophen"]{border-left-color:#5B8DEF; background:#F1F5FE;}
   .med-card[data-med-id="gabapentin"]{border-left-color:#EF7FA6; background:#FDF1F6;}
   .med-card[data-med-id="prazosin"]{border-left-color:#E3B23C; background:#FEFAEC;}
-  .med-card[data-med-id="amoxicillin"]{border-left-color:#4CAF7D; background:#F1FAF5;}
   .med-card[data-med-id="acetaminophen"] .give-btn{background:linear-gradient(135deg, #5B8DEF, #3E6FD1);}
   .med-card[data-med-id="gabapentin"] .give-btn{background:linear-gradient(135deg, #EF7FA6, #DB5A85);}
   .med-card[data-med-id="prazosin"] .give-btn{background:linear-gradient(135deg, #E3B23C, #C7961F);}
-  .med-card[data-med-id="amoxicillin"] .give-btn{background:linear-gradient(135deg, #4CAF7D, #369260);}
 
   .give-btn{
     margin-top:12px; width:100%; border:none; padding:14px; border-radius:var(--radius-md);
@@ -271,7 +269,7 @@
         <button class="quick-name-chip" data-name="Evva">Evva</button>
         <button class="quick-name-chip" data-name="Mom">Mom</button>
         <button class="quick-name-chip" data-name="Dad">Dad</button>
-        <button class="quick-name-chip" data-name="Sister">Sister</button>
+        <button class="quick-name-chip" data-name="Cadence">Cadence</button>
       </div>
       <button class="continue-btn" id="continue-btn">Continue</button>
     </div>
@@ -469,9 +467,7 @@ const MEDICATIONS = [
   { id: "acetaminophen", name: "Acetaminophen", dose: "¼ tablet", type: "recurring", intervalHours: 8 },
   { id: "gabapentin",    name: "Gabapentin",    dose: "1 capsule", type: "recurring", intervalHours: 8 },
   { id: "prazosin",      name: "Prazosin",      dose: "1 tablet", type: "daily-twice",
-    intervalHours: 8, dosesPerDay: 2 },
-  { id: "amoxicillin",   name: "Amoxicillin",   dose: "1 tablet by mouth", type: "limited",
-    intervalHours: 12, courseDurationDays: 3 }
+    intervalHours: 8, dosesPerDay: 2 }
 ];
 
 const PHYSIO_SESSIONS = [1,2,3,4].map(n => ({ id: `physio-${n}`, name: `Physio ${n}`, type: "physio" }));
