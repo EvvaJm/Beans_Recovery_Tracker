@@ -6,7 +6,6 @@
 <title>Beans' Recovery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
   :root{
     --bg: #FBF1F7;
@@ -239,36 +238,8 @@
   }
   .weight-log-btn:active{transform:scale(0.97);}
   .weight-chart-card{margin-bottom:18px;}
-  .weight-chart-wrap{position:relative; height:200px; margin-top:8px;}
+  .weight-chart-wrap{overflow-x:auto; margin-top:8px; padding-bottom:4px;}
   .weight-empty{text-align:center; color:var(--text-soft); font-weight:700; font-size:13.5px; padding:20px 0;}
-
-  /* ---------- Time Outside ---------- */
-  .outside-track{
-    position:relative; height:30px; background:var(--purple-pale); border-radius:999px;
-    margin-top:18px; margin-left:2px; margin-right:2px;
-  }
-  .outside-fill{
-    position:absolute; top:0; left:0; height:100%; border-radius:999px;
-    background:linear-gradient(90deg, var(--pink), var(--purple)); transition:width .4s ease;
-  }
-  .outside-marker{
-    position:absolute; top:50%; width:34px; height:34px; border-radius:50%;
-    transform:translate(-50%,-50%); border:3px solid white; object-fit:cover;
-    box-shadow:0 3px 10px rgba(139,111,179,0.35); transition:left .4s ease; background:var(--purple-pale);
-  }
-  .outside-goal-text{
-    display:flex; justify-content:space-between; margin-top:10px; font-size:12.5px;
-    font-weight:800; color:var(--text-soft);
-  }
-  .outside-status{text-align:center; font-weight:800; color:var(--purple-deep); font-size:14px; margin-top:8px;}
-  .outside-status.goal-reached{color:var(--pink-deep);}
-  .outside-btn{
-    margin-top:14px; width:100%; border:none; padding:14px; border-radius:var(--radius-md);
-    font-weight:800; font-size:15px; cursor:pointer; box-shadow:var(--shadow-sm); color:white;
-  }
-  .outside-btn.start{background:linear-gradient(135deg, var(--purple), var(--purple-deep));}
-  .outside-btn.stop{background:linear-gradient(135deg, #E3B23C, #C7961F);}
-  .outside-btn:active{transform:scale(0.98);}
 
   /* ---------- Nav tabs (bottom-less, just header buttons) ---------- */
   .offline-banner{
@@ -355,14 +326,6 @@
 
         <section class="block">
           <div class="block-head">
-            <h2>☀️ Time Outside</h2>
-            <p>Minimum 30 minutes a day</p>
-          </div>
-          <div class="card" id="outside-card"></div>
-        </section>
-
-        <section class="block">
-          <div class="block-head">
             <h2>🍽️ Food</h2>
             <p>2 meals today</p>
           </div>
@@ -408,7 +371,7 @@
           </div>
           <div class="card">
             <div class="weight-chart-wrap">
-              <canvas id="weight-chart"></canvas>
+              <div id="weight-chart"></div>
             </div>
             <div id="weight-chart-empty" class="weight-empty hidden">No weight logged yet — add one from the Today screen.</div>
           </div>
@@ -519,7 +482,8 @@ const CARE_ITEMS = [
   { id: "poop", name: "Poop", emoji: "💩" },
   { id: "diaper", name: "Diaper Change", emoji: "🩲" },
   { id: "clean-bum", name: "Clean Bum", emoji: "🧼" },
-  { id: "reposition", name: "Reposition", emoji: "🛏️" }
+  { id: "reposition", name: "Reposition", emoji: "🛏️" },
+  { id: "outside", name: "Outside", emoji: "☀️" }
 ];
 
 // ---- Local (device-only) state — NOT Beans' data, just "who am I" ----
@@ -623,7 +587,6 @@ $("#history-btn").addEventListener("click", () => {
   loadHistoryForDate(new Date());
   setActiveQuickDate(0);
   attachWeightChartListener();
-  requestAnimationFrame(() => { if (weightChartInstance) weightChartInstance.resize(); });
 });
 $("#back-to-today-btn").addEventListener("click", () => {
   $("#history-screen").classList.add("hidden");
@@ -884,92 +847,6 @@ function renderCare() {
   });
 }
 
-// =========================== TIME OUTSIDE ===========================
-const OUTSIDE_GOAL_MIN = 30;
-const outsideSession = { active: false, startedAt: null, startedBy: null }; // shared "currently outside" state
-
-function computeOutsideMinutesToday() {
-  const completed = todayEvents
-    .filter(e => e.type === "outside")
-    .reduce((sum, e) => sum + (e.value || 0), 0);
-  let liveMinutes = 0;
-  if (outsideSession.active && outsideSession.startedAt) {
-    liveMinutes = (Date.now() - outsideSession.startedAt.getTime()) / 60000;
-  }
-  return completed + liveMinutes;
-}
-
-function renderOutside() {
-  const card = $("#outside-card");
-  const minutes = computeOutsideMinutesToday();
-  const pct = Math.min(100, (minutes / OUTSIDE_GOAL_MIN) * 100);
-  const reached = minutes >= OUTSIDE_GOAL_MIN;
-  const displayMin = Math.floor(minutes);
-
-  let statusText;
-  if (outsideSession.active) {
-    const who = outsideSession.startedBy && outsideSession.startedBy !== currentUser ? ` (started by ${outsideSession.startedBy})` : "";
-    statusText = `🐾 Outside now${who} · ${elapsedString(Date.now() - outsideSession.startedAt.getTime())} so far`;
-  } else if (reached) {
-    statusText = "🎉 Goal reached for today!";
-  } else {
-    statusText = `${Math.max(1, Math.ceil(OUTSIDE_GOAL_MIN - minutes))} min to go`;
-  }
-
-  card.innerHTML = `
-    <div class="outside-track">
-      <div class="outside-fill" style="width:${pct}%;"></div>
-      <img class="outside-marker" src="BeansHeadshot.png" alt="" style="left:${pct}%;" />
-    </div>
-    <div class="outside-goal-text">
-      <span>${displayMin} / ${OUTSIDE_GOAL_MIN} min today</span>
-      <span>${reached ? "✅ Goal met" : ""}</span>
-    </div>
-    <div class="outside-status ${reached ? "goal-reached" : ""}">${statusText}</div>
-    <button class="outside-btn ${outsideSession.active ? "stop" : "start"}" id="outside-toggle-btn">
-      ${outsideSession.active ? "Stop — Bring Beans Inside" : "Start — Beans Is Outside"}
-    </button>
-  `;
-  card.querySelector(".outside-marker").addEventListener("error", function () { this.src = PLACEHOLDER_BEANS; }, { once: true });
-  $("#outside-toggle-btn").addEventListener("click", async () => {
-    const btn = $("#outside-toggle-btn");
-    btn.disabled = true;
-    try {
-      if (outsideSession.active) {
-        await stopOutside();
-        showToast("Welcome back inside ✓");
-      } else {
-        await startOutside();
-        showToast("Outside time started");
-      }
-    } catch (e) {
-      console.error(e);
-      showToast("Couldn't save — will retry when online");
-    } finally {
-      btn.disabled = false;
-    }
-  });
-}
-
-async function startOutside() {
-  if (!db) { showToast("Firebase isn't configured yet"); return; }
-  await setDoc(doc(db, "state", "outsideSession"), {
-    active: true,
-    startedAt: Timestamp.fromDate(new Date()),
-    startedBy: currentUser
-  });
-}
-
-async function stopOutside() {
-  if (!db || !outsideSession.active || !outsideSession.startedAt) return;
-  const durationMin = Math.max(1, Math.round((Date.now() - outsideSession.startedAt.getTime()) / 60000));
-  await recordEvent({ type: "outside", name: "Time Outside", value: durationMin, unit: "min" });
-  await setDoc(doc(db, "state", "outsideSession"), { active: false, startedAt: null, startedBy: null });
-}
-
-// live-update the progress bar and elapsed text while a session is active
-setInterval(() => { if (outsideSession.active) renderOutside(); }, 1000);
-
 // =========================== RECENT ACTIVITY ===========================
 function renderRecentActivity() {
   const list = $("#recent-activity-list");
@@ -1033,7 +910,6 @@ function attachTodayListener() {
     renderMeals();
     renderRecentActivity();
     renderMedications(); // daily-twice meds (Prazosin) depend on today's doses
-    renderOutside(); // completed sessions today affect the progress bar
   }, err => console.error("today listener", err));
 }
 
@@ -1114,23 +990,6 @@ function attachListeners() {
     unsubscribers.push(unsub);
   });
 
-  // Shared "currently outside" session (so all family phones see it live)
-  const outsideStateRef = doc(db, "state", "outsideSession");
-  const unsubOutsideState = onSnapshot(outsideStateRef, snap => {
-    if (snap.exists() && snap.data().active) {
-      const data = snap.data();
-      outsideSession.active = true;
-      outsideSession.startedAt = tsToDate(data.startedAt);
-      outsideSession.startedBy = data.startedBy || null;
-    } else {
-      outsideSession.active = false;
-      outsideSession.startedAt = null;
-      outsideSession.startedBy = null;
-    }
-    renderOutside();
-  }, err => console.error("outside state listener", err));
-  unsubscribers.push(unsubOutsideState);
-
   // Most recent weight entry (for the Today screen card)
   const weightQ = query(
     collection(db, "events"),
@@ -1151,7 +1010,6 @@ function attachListeners() {
 
 // =========================== HISTORY SCREEN ===========================
 let weightChartUnsub = null;
-let weightChartInstance = null;
 
 function attachWeightChartListener() {
   if (weightChartUnsub) return; // already listening
@@ -1170,64 +1028,47 @@ function attachWeightChartListener() {
 }
 
 function renderWeightChart(points) {
-  const canvas = $("#weight-chart");
+  const container = $("#weight-chart");
   const emptyEl = $("#weight-chart-empty");
 
   if (!points.length) {
-    canvas.classList.add("hidden");
+    container.classList.add("hidden");
     emptyEl.classList.remove("hidden");
-    if (weightChartInstance) { weightChartInstance.destroy(); weightChartInstance = null; }
     return;
   }
-  canvas.classList.remove("hidden");
+  container.classList.remove("hidden");
   emptyEl.classList.add("hidden");
 
-  // If the canvas hasn't been laid out yet (e.g. the History screen just
-  // became visible this same tick), Chart.js would measure it as 0×0 and
-  // draw nothing. Wait a frame and try again so it always gets a real size.
-  if (canvas.clientWidth === 0) {
-    requestAnimationFrame(() => renderWeightChart(points));
-    return;
-  }
+  // Plain hand-drawn SVG line chart — no external chart library needed,
+  // so there's nothing that can fail to load or mis-time its rendering.
+  const PAD_L = 34, PAD_R = 26, PAD_T = 28, PAD_B = 34;
+  const POINT_GAP = 68;
+  const CHART_H = 190;
+  const innerH = CHART_H - PAD_T - PAD_B;
+  const chartW = Math.max(280, PAD_L + PAD_R + (points.length - 1) * POINT_GAP);
 
-  const unit = points[points.length - 1].unit || "lbs";
-  const labels = points.map(p => p.timestamp.toLocaleDateString([], { month: "short", day: "numeric" }));
-  const data = points.map(p => p.value);
+  const values = points.map(p => p.value);
+  let minVal = Math.min(...values);
+  let maxVal = Math.max(...values);
+  if (minVal === maxVal) { minVal -= 1; maxVal += 1; }
+  const range = maxVal - minVal;
 
-  if (weightChartInstance) {
-    weightChartInstance.data.labels = labels;
-    weightChartInstance.data.datasets[0].data = data;
-    weightChartInstance.data.datasets[0].label = `Weight (${unit})`;
-    weightChartInstance.update();
-    return;
-  }
+  const xFor = i => PAD_L + i * POINT_GAP;
+  const yFor = v => PAD_T + innerH - ((v - minVal) / range) * innerH;
 
-  weightChartInstance = new Chart(canvas.getContext("2d"), {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: `Weight (${unit})`,
-        data,
-        borderColor: "#8B6FB3",
-        backgroundColor: "rgba(139,111,179,0.12)",
-        pointBackgroundColor: "#E8749A",
-        pointRadius: 4,
-        borderWidth: 3,
-        tension: 0.3,
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: "#8C7A9B", font: { family: "Nunito", weight: "700" } } },
-        y: { grid: { color: "#F0DEEC" }, ticks: { color: "#8C7A9B", font: { family: "Nunito", weight: "700" } } }
-      }
-    }
+  const linePoints = points.map((p, i) => `${xFor(i)},${yFor(p.value)}`).join(" ");
+
+  let svg = `<svg width="${chartW}" height="${CHART_H}" viewBox="0 0 ${chartW} ${CHART_H}" style="display:block; font-family:'Nunito',sans-serif;">`;
+  svg += `<polyline points="${linePoints}" fill="none" stroke="#8B6FB3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
+  points.forEach((p, i) => {
+    const x = xFor(i), y = yFor(p.value);
+    svg += `<circle cx="${x}" cy="${y}" r="5" fill="#E8749A" stroke="#FFFFFF" stroke-width="2" />`;
+    svg += `<text x="${x}" y="${Math.max(14, y - 12)}" font-size="12" font-weight="800" fill="#4A3358" text-anchor="middle">${p.value}</text>`;
+    svg += `<text x="${x}" y="${CHART_H - 12}" font-size="10.5" font-weight="700" fill="#8C7A9B" text-anchor="middle">${p.timestamp.toLocaleDateString([], { month: "short", day: "numeric" })}</text>`;
   });
+  svg += `</svg>`;
+
+  container.innerHTML = svg;
 }
 
 function loadHistoryForDate(date) {
@@ -1307,7 +1148,6 @@ function boot() {
   renderMedications();
   renderPhysio();
   renderWalks();
-  renderOutside();
   renderMeals();
   renderCare();
   renderWeight();
