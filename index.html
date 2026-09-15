@@ -244,6 +244,51 @@
     background:var(--pink-pale); color:var(--pink-deep); font-weight:800; font-size:12.5px;
     text-align:center; padding:8px; border-radius:999px; margin-bottom:14px;
   }
+  /* ---------- Photo of the day ---------- */
+  .photo-hero-card{padding:0; overflow:hidden;}
+  .photo-hero-img-wrap{position:relative; width:100%; aspect-ratio:4/3; background:var(--purple-pale);}
+  .photo-hero-img-wrap img{width:100%; height:100%; object-fit:cover; display:block;}
+  .photo-hero-caption{
+    position:absolute; left:0; right:0; bottom:0; padding:10px 14px 8px;
+    background:linear-gradient(transparent, rgba(60,40,80,0.6));
+    color:white; font-weight:800; font-size:12.5px;
+  }
+  .photo-hero-empty{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:30px 20px; text-align:center; gap:8px;
+  }
+  .photo-hero-empty img{width:80px; opacity:0.9;}
+  .photo-hero-empty p{margin:0; color:var(--text-soft); font-weight:700; font-size:13.5px;}
+  .photo-hero-btn{
+    display:block; width:100%; border:none; padding:14px; border-radius:0 0 var(--radius-lg) var(--radius-lg);
+    background:linear-gradient(135deg, var(--purple), var(--purple-deep)); color:white;
+    font-weight:800; font-size:14.5px; cursor:pointer;
+  }
+  .photo-hero-empty .photo-hero-btn{border-radius:var(--radius-md); width:auto; padding:12px 22px; margin-top:4px;}
+  .photo-hero-btn:active{transform:scale(0.99);}
+
+  .photo-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;}
+  .photo-grid-item{
+    position:relative; border-radius:var(--radius-sm); overflow:hidden; aspect-ratio:1/1;
+    cursor:pointer; box-shadow:var(--shadow-sm); background:var(--purple-pale);
+  }
+  .photo-grid-item img{width:100%; height:100%; object-fit:cover; display:block;}
+  .photo-grid-item .date-badge{
+    position:absolute; left:4px; bottom:4px; background:rgba(60,40,80,0.65); color:white;
+    font-size:9.5px; font-weight:800; padding:2px 6px; border-radius:999px;
+  }
+
+  .photo-lightbox{
+    position:fixed; inset:0; background:rgba(30,20,40,0.92); z-index:200;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px;
+  }
+  .photo-lightbox img{max-width:100%; max-height:72vh; border-radius:var(--radius-md); box-shadow:var(--shadow); object-fit:contain;}
+  .photo-lightbox-caption{color:white; font-weight:800; margin-top:14px; font-size:14px; text-align:center;}
+  .photo-lightbox-close{
+    position:absolute; top:18px; right:18px; background:rgba(255,255,255,0.16); color:white;
+    border:none; width:38px; height:38px; border-radius:50%; font-size:17px; cursor:pointer;
+  }
+
   .toast{
     position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
     background:var(--purple-deep); color:white; padding:11px 22px; border-radius:999px;
@@ -283,6 +328,7 @@
         <div class="name">Beans' Recovery</div>
         <div class="user" id="current-user-label">—</div>
       </div>
+      <button class="icon-btn" id="gallery-btn" title="Photos">📷</button>
       <button class="icon-btn" id="history-btn" title="History">🕐</button>
       <button class="icon-btn" id="change-user-btn" title="Change User">👤</button>
     </header>
@@ -297,6 +343,10 @@
           <div class="today-title">Today</div>
           <div class="recovery-day" id="recovery-day-label">Recovery Day —</div>
         </div>
+
+        <section class="block">
+          <div class="card photo-hero-card" id="photo-hero-card"></div>
+        </section>
 
         <section class="block">
           <div class="block-head">
@@ -387,9 +437,26 @@
         </div>
         <div id="history-content"></div>
       </div>
+
+      <!-- ---------- GALLERY SCREEN ---------- -->
+      <div id="gallery-screen" class="hidden">
+        <div class="history-header">
+          <button class="back-link" id="back-from-gallery-btn">← Back to Today</button>
+        </div>
+        <h2 style="color:var(--purple-deep); margin:4px 0 14px;">Beans' Photo Album</h2>
+        <div class="photo-grid" id="photo-grid"></div>
+      </div>
     </main>
   </div>
 
+</div>
+
+<input type="file" accept="image/*" capture="environment" id="camera-input" style="display:none" />
+
+<div class="photo-lightbox hidden" id="photo-lightbox">
+  <button class="photo-lightbox-close" id="photo-lightbox-close" aria-label="Close">✕</button>
+  <img id="photo-lightbox-img" src="" alt="" />
+  <div class="photo-lightbox-caption" id="photo-lightbox-caption"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -575,9 +642,14 @@ $("#change-user-btn").addEventListener("click", () => {
 });
 
 // =========================== NAVIGATION ===========================
+function showScreen(name) {
+  $("#today-screen").classList.toggle("hidden", name !== "today");
+  $("#history-screen").classList.toggle("hidden", name !== "history");
+  $("#gallery-screen").classList.toggle("hidden", name !== "gallery");
+}
+
 $("#history-btn").addEventListener("click", () => {
-  $("#today-screen").classList.add("hidden");
-  $("#history-screen").classList.remove("hidden");
+  showScreen("history");
   const input = $("#history-date-input");
   input.value = toInputDate(new Date());
   loadHistoryForDate(new Date());
@@ -585,10 +657,17 @@ $("#history-btn").addEventListener("click", () => {
   attachWeightChartListener();
 });
 $("#back-to-today-btn").addEventListener("click", () => {
-  $("#history-screen").classList.add("hidden");
-  $("#today-screen").classList.remove("hidden");
+  showScreen("today");
   if (historyUnsub) { historyUnsub(); historyUnsub = null; }
   if (weightChartUnsub) { weightChartUnsub(); weightChartUnsub = null; }
+});
+
+$("#gallery-btn").addEventListener("click", () => {
+  showScreen("gallery");
+  renderPhotoGallery();
+});
+$("#back-from-gallery-btn").addEventListener("click", () => {
+  showScreen("today");
 });
 
 function toInputDate(d) {
@@ -843,6 +922,133 @@ function renderCare() {
   });
 }
 
+// =========================== PHOTO OF THE DAY ===========================
+let allPhotos = []; // sorted desc by dateKey: [{ id (=dateKey), dateKey, imageData, user, timestamp }, ...]
+
+function dateKeyToDate(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+function prettyDateKey(key) {
+  return dateKeyToDate(key).toLocaleDateString([], { month: "long", day: "numeric" });
+}
+
+// Resizes + JPEG-compresses a captured photo client-side so it comfortably
+// fits inside a single Firestore document (no Firebase Storage / billing needed).
+function compressImageFile(file, { maxDim = 900, quality = 0.7, maxBytes = 900000 } = {}) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width >= height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        let q = quality;
+        let dataUrl = canvas.toDataURL("image/jpeg", q);
+        while (dataUrl.length > maxBytes && q > 0.3) {
+          q -= 0.1;
+          dataUrl = canvas.toDataURL("image/jpeg", q);
+        }
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error("Couldn't read that image"));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error("Couldn't read that file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPhotoHero() {
+  const card = $("#photo-hero-card");
+  const todayKey = toInputDate(new Date());
+  const todayPhoto = allPhotos.find(p => p.dateKey === todayKey);
+  const photo = todayPhoto || allPhotos[0] || null;
+
+  if (!photo) {
+    card.innerHTML = `
+      <div class="photo-hero-empty">
+        <img src="BeansHeadshot.png" alt="" />
+        <p>No photo yet — take Beans' first one of the day!</p>
+        <button class="photo-hero-btn" id="take-photo-btn">📷 Take Today's Photo</button>
+      </div>
+    `;
+  } else {
+    const isToday = photo.dateKey === todayKey;
+    card.innerHTML = `
+      <div class="photo-hero-img-wrap">
+        <img src="${photo.imageData}" alt="Beans" />
+        <div class="photo-hero-caption">${isToday ? "Today's photo 🐾" : `Showing ${prettyDateKey(photo.dateKey)}'s photo — add today's!`}</div>
+      </div>
+      <button class="photo-hero-btn" id="take-photo-btn">📷 ${isToday ? "Retake" : "Take"} Today's Photo</button>
+    `;
+  }
+  $("#take-photo-btn").addEventListener("click", () => $("#camera-input").click());
+}
+
+function renderPhotoGallery() {
+  const grid = $("#photo-grid");
+  if (!allPhotos.length) {
+    grid.innerHTML = `<div class="hist-empty">No photos yet — take Beans' first one from the Today screen!</div>`;
+    return;
+  }
+  grid.innerHTML = allPhotos.map(p => `
+    <div class="photo-grid-item" data-photo-id="${p.id}">
+      <img src="${p.imageData}" alt="" loading="lazy" />
+      <span class="date-badge">${dateKeyToDate(p.dateKey).toLocaleDateString([], { month: "short", day: "numeric" })}</span>
+    </div>
+  `).join("");
+  grid.querySelectorAll("[data-photo-id]").forEach(el => {
+    el.addEventListener("click", () => openLightbox(el.dataset.photoId));
+  });
+}
+
+function openLightbox(photoId) {
+  const photo = allPhotos.find(p => p.id === photoId);
+  if (!photo) return;
+  $("#photo-lightbox-img").src = photo.imageData;
+  $("#photo-lightbox-caption").textContent =
+    `${dateKeyToDate(photo.dateKey).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}${photo.user ? " · added by " + photo.user : ""}`;
+  $("#photo-lightbox").classList.remove("hidden");
+}
+function closeLightbox() {
+  $("#photo-lightbox").classList.add("hidden");
+}
+$("#photo-lightbox-close").addEventListener("click", closeLightbox);
+$("#photo-lightbox").addEventListener("click", e => {
+  if (e.target.id === "photo-lightbox") closeLightbox();
+});
+
+$("#camera-input").addEventListener("change", async e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = ""; // allow choosing the same file again later
+  if (!file) return;
+  if (!db) { showToast("Firebase isn't configured yet"); return; }
+  showToast("Saving photo…");
+  try {
+    const compressed = await compressImageFile(file);
+    const todayKey = toInputDate(new Date());
+    await setDoc(doc(db, "photos", todayKey), {
+      dateKey: todayKey,
+      imageData: compressed,
+      user: currentUser,
+      timestamp: Timestamp.fromDate(new Date()),
+      createdAt: serverTimestamp()
+    });
+    showToast("Photo saved ✓");
+  } catch (err) {
+    console.error(err);
+    showToast("Couldn't save that photo — try again");
+  }
+});
+
 // =========================== RECENT ACTIVITY ===========================
 function renderRecentActivity() {
   const list = $("#recent-activity-list");
@@ -985,6 +1191,15 @@ function attachListeners() {
     }, err => console.error("care listener", item.id, err));
     unsubscribers.push(unsub);
   });
+
+  // All photos (for the Today hero + the Gallery screen)
+  const photosQ = query(collection(db, "photos"), orderBy("dateKey", "desc"));
+  const unsubPhotos = onSnapshot(photosQ, snap => {
+    allPhotos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderPhotoHero();
+    if (!$("#gallery-screen").classList.contains("hidden")) renderPhotoGallery();
+  }, err => console.error("photos listener", err));
+  unsubscribers.push(unsubPhotos);
 
   // Most recent weight entry (for the Today screen card)
   const weightQ = query(
@@ -1141,6 +1356,7 @@ function boot() {
   if (!currentUser) { showSetup(); return; }
   showMainApp();
   renderDateBanner();
+  renderPhotoHero();
   renderMedications();
   renderPhysio();
   renderWalks();
