@@ -120,10 +120,8 @@
 
   /* ---------- Medicine-bottle colour coding ---------- */
   .med-card{border-left:8px solid transparent;}
-  .med-card[data-med-id="acetaminophen"]{border-left-color:#5B8DEF; background:#F1F5FE;}
   .med-card[data-med-id="gabapentin"]{border-left-color:#EF7FA6; background:#FDF1F6;}
   .med-card[data-med-id="prazosin"]{border-left-color:#E3B23C; background:#FEFAEC;}
-  .med-card[data-med-id="acetaminophen"] .give-btn{background:linear-gradient(135deg, #5B8DEF, #3E6FD1);}
   .med-card[data-med-id="gabapentin"] .give-btn{background:linear-gradient(135deg, #EF7FA6, #DB5A85);}
   .med-card[data-med-id="prazosin"] .give-btn{background:linear-gradient(135deg, #E3B23C, #C7961F);}
 
@@ -531,7 +529,6 @@ document.querySelectorAll('img[src="BeansHeadshot.png"]').forEach(img => {
 
 // ---- Medication configuration (data-driven; matches vet instructions exactly) ----
 const MEDICATIONS = [
-  { id: "acetaminophen", name: "Acetaminophen", dose: "¼ tablet", type: "recurring", intervalHours: 8 },
   { id: "gabapentin",    name: "Gabapentin",    dose: "1 capsule", type: "recurring", intervalHours: 8 },
   { id: "prazosin",      name: "Prazosin",      dose: "1 tablet", type: "daily-twice",
     intervalHours: 8, dosesPerDay: 2 }
