@@ -294,6 +294,51 @@
     opacity:0; transition:opacity .25s ease, transform .25s ease; pointer-events:none;
   }
   .toast.show{opacity:1;}
+
+  /* ---------- Optional note prompt (after a quick log) ---------- */
+  .note-prompt{
+    position:fixed; left:16px; right:16px; bottom:22px; max-width:520px; margin:0 auto;
+    background:white; border-radius:var(--radius-md); box-shadow:var(--shadow);
+    padding:12px 14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    transform:translateY(160%); transition:transform .3s ease; z-index:110; pointer-events:none;
+  }
+  .note-prompt.show{transform:translateY(0); pointer-events:auto;}
+  .note-prompt span{flex-basis:100%; font-weight:800; font-size:13px; color:var(--text);}
+  .note-prompt input{
+    flex:1; min-width:120px; padding:10px 12px; border-radius:var(--radius-sm); border:2px solid var(--line);
+    font-family:inherit; font-size:13.5px; font-weight:700; color:var(--text);
+  }
+  .note-prompt input:focus{outline:none; border-color:var(--purple);}
+  .note-prompt button{border:none; border-radius:999px; padding:10px 14px; font-weight:800; font-size:12.5px; cursor:pointer;}
+  #note-prompt-save{background:linear-gradient(135deg, var(--purple), var(--purple-deep)); color:white;}
+  #note-prompt-dismiss{background:var(--purple-pale); color:var(--purple-deep); padding:10px 12px;}
+
+  /* ---------- Small inline icon buttons (edit/delete on list rows) ---------- */
+  .icon-btn.small{width:30px; height:30px; font-size:13px;}
+  .row-actions{display:flex; gap:6px; flex-shrink:0;}
+
+  /* ---------- Generic edit modal (calorie entries) ---------- */
+  .edit-modal-backdrop{
+    position:fixed; inset:0; background:rgba(30,20,40,0.5); z-index:210;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .edit-modal-card{
+    background:white; border-radius:var(--radius-lg); box-shadow:var(--shadow);
+    padding:20px; width:100%; max-width:340px;
+  }
+  .edit-modal-card h3{margin:0 0 12px; color:var(--purple-deep); font-size:17px;}
+  .edit-modal-card input{
+    width:100%; padding:12px 14px; border-radius:var(--radius-md); border:2px solid var(--line);
+    font-family:inherit; font-size:16px; font-weight:800; color:var(--text); text-align:center;
+  }
+  .edit-modal-card input:focus{outline:none; border-color:var(--purple);}
+  .edit-modal-actions{display:flex; gap:8px; margin-top:16px;}
+  .edit-modal-actions button{
+    flex:1; border:none; padding:12px; border-radius:var(--radius-md); font-weight:800; font-size:13.5px; cursor:pointer;
+  }
+  .edit-modal-save{background:linear-gradient(135deg, var(--purple), var(--purple-deep)); color:white;}
+  .edit-modal-delete{background:var(--pink-pale); color:var(--pink-deep);}
+  .edit-modal-cancel{background:var(--purple-pale); color:var(--purple-deep);}
 </style>
 </head>
 <body>
@@ -373,9 +418,9 @@
         <section class="block">
           <div class="block-head">
             <h2>🍽️ Food</h2>
-            <p>2 meals today</p>
+            <p>Track her calories for the day</p>
           </div>
-          <div class="toggle-row" id="meals-list"></div>
+          <div class="card" id="food-card"></div>
         </section>
 
         <section class="block">
@@ -457,6 +502,20 @@
   <div class="photo-lightbox-caption" id="photo-lightbox-caption"></div>
 </div>
 
+<div class="edit-modal-backdrop hidden" id="calorie-edit-backdrop">
+  <div class="edit-modal-card">
+    <h3>Edit Calories</h3>
+    <input type="number" inputmode="numeric" id="calorie-edit-input" />
+    <div class="edit-modal-actions">
+      <button class="edit-modal-cancel" id="calorie-edit-cancel">Cancel</button>
+      <button class="edit-modal-delete" id="calorie-edit-delete">Delete</button>
+      <button class="edit-modal-save" id="calorie-edit-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="note-prompt" id="note-prompt"></div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -482,7 +541,7 @@ import {
   getAuth, signInAnonymously, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs,
+  getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc,
   query, where, orderBy, limit, onSnapshot, Timestamp, serverTimestamp,
   enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -527,22 +586,22 @@ document.querySelectorAll('img[src="BeansHeadshot.png"]').forEach(img => {
   img.addEventListener('error', () => { img.src = PLACEHOLDER_BEANS; }, { once:true });
 });
 
-// ---- Medication configuration (data-driven; matches vet instructions exactly) ----
+// ---- Medication configuration (data-driven; not time-specific anymore — just
+// a once/twice daily checklist. "slots" are the daily press-buttons for that med.) ----
 const MEDICATIONS = [
-  { id: "gabapentin",    name: "Gabapentin",    dose: "1 capsule", type: "recurring", intervalHours: 8 },
-  { id: "prazosin",      name: "Prazosin",      dose: "1 tablet", type: "daily-twice",
-    intervalHours: 8, dosesPerDay: 2 }
+  { id: "gabapentin", name: "Gabapentin", dose: "1 capsule", slots: ["Morning", "Bedtime"] },
+  { id: "prazosin",   name: "Prazosin",   dose: "1 tablet",  slots: ["Daily Dose"] }
 ];
 
 const PHYSIO_SESSIONS = [1,2,3,4].map(n => ({ id: `physio-${n}`, name: `Physio ${n}`, type: "physio" }));
 const WALKS = [1,2].map(n => ({ id: `walk-${n}`, name: `Walk ${n}`, type: "walk" }));
-const MEALS = [1,2].map(n => ({ id: `meal-${n}`, name: `Meal ${n}`, type: "meal" }));
 const CARE_ITEMS = [
   { id: "bladder", name: "Bladder Expression", emoji: "💧" },
   { id: "poop", name: "Poop", emoji: "💩" },
-  { id: "diaper", name: "Diaper Change", emoji: "🩲" },
   { id: "clean-bum", name: "Clean Bum", emoji: "🧼" },
-  { id: "reposition", name: "Reposition", emoji: "🛏️" },
+  { id: "red-light", name: "Red Light Therapy", emoji: "🔴" },
+  { id: "water-therapy", name: "Water Therapy", emoji: "🛁" },
+  { id: "bath", name: "Bath", emoji: "🚿" },
   { id: "outside", name: "Outside", emoji: "☀️" }
 ];
 
@@ -551,8 +610,7 @@ const USER_KEY = "beansRecovery.userName";
 let currentUser = localStorage.getItem(USER_KEY) || null;
 
 // ---- Runtime state populated from Firestore listeners ----
-const medState = {};      // medId -> { lastDose, firstDose }
-let todayEvents = [];     // events with timestamp today (physio/walk/meal/care/recent activity)
+let todayEvents = [];     // events with timestamp today (physio/walk/food/care/recent activity)
 let recoveryStartDate = null;
 let unsubscribers = [];
 let historyUnsub = null;
@@ -704,124 +762,59 @@ function renderDateBanner() {
 }
 
 // =========================== MEDICATIONS ===========================
-function computeMedDisplay(med) {
-  const st = medState[med.id] || {};
-  const last = st.lastDose || null;
-  const first = st.firstDose || null;
-
-  if (med.type === "recurring") {
-    const next = last ? new Date(last.getTime() + med.intervalHours * 3600000) : null;
-    return { last, next, scheduleLabel: `Every ${med.intervalHours} hours`, tag: null, active: true };
-  }
-
-  if (med.type === "daily-twice") {
-    const doses = todayEvents
-      .filter(e => e.type === "medication" && e.medicationId === med.id)
-      .sort((a, b) => a.timestamp - b.timestamp);
-
-    if (doses.length === 0) {
-      return { last: null, next: null, scheduleLabel: `${med.dosesPerDay}x daily · ${med.intervalHours} hours apart`, tag: "Not given yet today", active: true, doneForDay: false };
-    }
-    if (doses.length < med.dosesPerDay) {
-      const last = doses[doses.length - 1].timestamp;
-      const next = new Date(last.getTime() + med.intervalHours * 3600000);
-      return { last, next, scheduleLabel: `Every ${med.intervalHours} hours`, tag: `${doses.length} of ${med.dosesPerDay} doses today`, active: true, doneForDay: false };
-    }
-    const last = doses[doses.length - 1].timestamp;
-    return { last, next: null, scheduleLabel: `${med.dosesPerDay}x daily`, tag: "✅ Done for today", active: true, doneForDay: true };
-  }
-
-  if (med.type === "limited") {
-    if (!first) {
-      return { last: null, next: null, scheduleLabel: `Every ${med.intervalHours} hours`, tag: `${med.courseDurationDays}-day course`, active: true, courseEnd: null };
-    }
-    const courseEnd = new Date(first.getTime() + med.courseDurationDays * 86400000);
-    const active = Date.now() < courseEnd.getTime();
-    const next = last ? new Date(last.getTime() + med.intervalHours * 3600000) : null;
-    return { last, next, scheduleLabel: `Every ${med.intervalHours} hours`, tag: null, active, courseEnd };
-  }
-}
-
+// Simple daily checklist now (not time/interval based) — each medication has
+// one or more daily "slots" (e.g. Gabapentin: Morning + Bedtime). Tapping a
+// slot logs it with the current time; it resets automatically at midnight
+// because it's derived from todayEvents, same as Physio/Walks/Care.
 function renderMedications() {
   const container = $("#medications-list");
   container.innerHTML = "";
   MEDICATIONS.forEach(med => {
-    const disp = computeMedDisplay(med);
-    if (med.type === "limited" && disp.active === false) return; // course finished — hide, but history keeps records
-
     const card = document.createElement("div");
     card.className = "card med-card";
     card.dataset.medId = med.id;
 
-    let courseHtml = "";
-    if (med.type === "limited" && disp.courseEnd) {
-      const remainMs = disp.courseEnd.getTime() - Date.now();
-      const remainDays = Math.max(1, Math.ceil(remainMs / 86400000));
-      courseHtml = `<div class="course-remaining" data-course>Course remaining: ${remainDays} day${remainDays===1?"":"s"}</div>`;
-    }
+    const slotsHtml = med.slots.map(slot => {
+      const doneToday = todayEvents.find(e => e.type === "medication" && e.medicationId === med.id && e.slot === slot);
+      const label = med.slots.length === 1 ? (doneToday ? `${med.name} Given` : `Give ${med.name}`) : slot;
+      return `
+        <button class="toggle-btn ${doneToday ? "done" : ""}" data-med="${med.id}" data-slot="${slot}">
+          <span>${label}${doneToday ? " ✓" : ""}</span>
+          ${doneToday ? `<span class="sub">${fmtTime(doneToday.timestamp)}</span>` : ""}
+        </button>
+      `;
+    }).join("");
 
     card.innerHTML = `
       <div class="med-top">
         <span class="med-name">💊 ${med.name}</span>
         <span class="med-dose">${med.dose}</span>
       </div>
-      <div class="med-schedule">${disp.scheduleLabel}</div>
-      ${disp.tag ? `<span class="med-tag">${disp.tag}</span>` : ""}
-      <div class="med-times">
-        <div><div class="label">Last given</div><div class="value">${disp.last ? fmtTime(disp.last) : "Not yet"}</div></div>
-        <div><div class="label">Next due</div><div class="value">${disp.doneForDay ? "Tomorrow" : (disp.next ? fmtTime(disp.next) : "—")}</div></div>
-      </div>
-      <div class="countdown" data-countdown>${disp.doneForDay ? "✅ Done for today — resets at midnight" : (disp.next ? countdownString(disp.next - Date.now()) : "Ready whenever you are")}</div>
-      ${courseHtml}
-      ${disp.doneForDay ? "" : `<button class="give-btn" data-give="${med.id}">Give ${med.name}</button>`}
+      <div class="med-schedule">${med.slots.length > 1 ? `${med.slots.length}x daily` : "Once daily"}</div>
+      <div class="toggle-row" style="margin-top:12px;">${slotsHtml}</div>
     `;
     container.appendChild(card);
   });
 
-  container.querySelectorAll("[data-give]").forEach(btn => {
-    btn.addEventListener("click", () => giveMedication(btn.dataset.give));
+  container.querySelectorAll("[data-med]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const med = MEDICATIONS.find(m => m.id === btn.dataset.med);
+      const slot = btn.dataset.slot;
+      btn.disabled = true;
+      try {
+        await recordEvent({ type: "medication", name: med.name, medicationId: med.id, dose: med.dose, slot });
+        showToast(`${med.name} recorded ✓`);
+      } catch (e) {
+        console.error(e);
+        showToast("Couldn't save — will retry when online");
+      } finally {
+        btn.disabled = false;
+      }
+    });
   });
 }
 
-async function giveMedication(medId) {
-  const med = MEDICATIONS.find(m => m.id === medId);
-  if (!med) return;
-  const btn = document.querySelector(`[data-give="${medId}"]`);
-  if (btn) { btn.disabled = true; btn.classList.add("just-given"); btn.textContent = "Recording…"; }
-  try {
-    await recordEvent({ type: "medication", name: med.name, medicationId: med.id, dose: med.dose });
-    showToast(`${med.name} recorded ✓`);
-  } catch (e) {
-    console.error(e);
-    showToast("Couldn't save — will retry when online");
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = `Give ${med.name}`; }
-  }
-}
-
-// tick countdowns every second without a full re-render
-setInterval(() => {
-  document.querySelectorAll(".med-card").forEach(card => {
-    const medId = card.dataset.medId;
-    const med = MEDICATIONS.find(m => m.id === medId);
-    if (!med) return;
-    const disp = computeMedDisplay(med);
-    const el = card.querySelector("[data-countdown]");
-    if (el && disp.next) {
-      const remaining = disp.next - Date.now();
-      el.textContent = countdownString(remaining);
-      el.classList.toggle("due", remaining <= 0);
-    }
-    const courseEl = card.querySelector("[data-course]");
-    if (courseEl && disp.courseEnd) {
-      const remainMs = disp.courseEnd.getTime() - Date.now();
-      const remainDays = Math.max(1, Math.ceil(remainMs / 86400000));
-      courseEl.textContent = `Course remaining: ${remainDays} day${remainDays===1?"":"s"}`;
-    }
-  });
-}, 1000);
-
-// =========================== PHYSIO / WALKS / MEALS ===========================
+// =========================== PHYSIO / WALKS ===========================
 function renderToggleGroup(containerSel, items, subLabelFn) {
   const container = $(containerSel);
   container.innerHTML = "";
@@ -834,8 +827,9 @@ function renderToggleGroup(containerSel, items, subLabelFn) {
     btn.addEventListener("click", async () => {
       btn.disabled = true;
       try {
-        await recordEvent({ type: item.type, name: item.name });
+        const ref = await recordEvent({ type: item.type, name: item.name });
         showToast(`${item.name} recorded ✓`);
+        showNotePrompt(ref.id, item.name);
       } catch (e) {
         console.error(e);
         showToast("Couldn't save — will retry when online");
@@ -848,7 +842,6 @@ function renderToggleGroup(containerSel, items, subLabelFn) {
 }
 function renderPhysio() { renderToggleGroup("#physio-list", PHYSIO_SESSIONS); }
 function renderWalks() { renderToggleGroup("#walks-list", WALKS, () => "15 min"); }
-function renderMeals() { renderToggleGroup("#meals-list", MEALS); }
 
 // =========================== CARE ===========================
 const careLastState = {}; // careId -> Date (most recent ever, not just today)
@@ -891,6 +884,100 @@ function renderWeight() {
   });
 }
 
+// =========================== FOOD (CALORIE TRACKER) ===========================
+let editingFoodId = null;
+
+function renderFood() {
+  const card = $("#food-card");
+  const entries = todayEvents
+    .filter(e => e.type === "food")
+    .sort((a, b) => b.timestamp - a.timestamp);
+  const total = entries.reduce((sum, e) => sum + (e.value || 0), 0);
+
+  card.innerHTML = `
+    <div class="med-schedule" style="font-size:15px;">Today's total: <strong style="color:var(--text);">${total} cal</strong></div>
+    <div class="weight-row">
+      <input type="number" inputmode="numeric" id="calorie-input" placeholder="e.g. 350" />
+      <button class="weight-log-btn" id="calorie-add-btn">Add</button>
+    </div>
+    <div style="margin-top:${entries.length ? "12" : "0"}px;">
+      ${entries.map(e => `
+        <div class="activity-item">
+          <div class="left">
+            <div class="name">${e.value} cal</div>
+            <div class="meta">${fmtTime(e.timestamp)} · ${e.user}</div>
+          </div>
+          <div class="row-actions">
+            <button class="icon-btn small" data-edit-food="${e.id}" title="Edit">✏️</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+
+  $("#calorie-add-btn").addEventListener("click", async () => {
+    const input = $("#calorie-input");
+    const val = parseInt(input.value, 10);
+    if (isNaN(val) || val <= 0) { showToast("Enter a valid calorie amount"); return; }
+    const btn = $("#calorie-add-btn");
+    btn.disabled = true;
+    try {
+      await recordEvent({ type: "food", name: "Calories", value: val, unit: "cal" });
+      input.value = "";
+      showToast(`${val} cal added ✓`);
+    } catch (e) {
+      console.error(e);
+      showToast("Couldn't save — will retry when online");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  card.querySelectorAll("[data-edit-food]").forEach(btn => {
+    btn.addEventListener("click", () => openCalorieEdit(btn.dataset.editFood));
+  });
+}
+
+function openCalorieEdit(id) {
+  const entry = todayEvents.find(e => e.id === id && e.type === "food");
+  if (!entry) return;
+  editingFoodId = id;
+  $("#calorie-edit-input").value = entry.value;
+  $("#calorie-edit-backdrop").classList.remove("hidden");
+  setTimeout(() => $("#calorie-edit-input").focus(), 50);
+}
+function closeCalorieEdit() {
+  $("#calorie-edit-backdrop").classList.add("hidden");
+  editingFoodId = null;
+}
+$("#calorie-edit-cancel").addEventListener("click", closeCalorieEdit);
+$("#calorie-edit-backdrop").addEventListener("click", e => {
+  if (e.target.id === "calorie-edit-backdrop") closeCalorieEdit();
+});
+$("#calorie-edit-save").addEventListener("click", async () => {
+  const val = parseInt($("#calorie-edit-input").value, 10);
+  if (isNaN(val) || val < 0) { showToast("Enter a valid number"); return; }
+  if (!editingFoodId) return;
+  try {
+    await updateDoc(doc(db, "events", editingFoodId), { value: val });
+    showToast("Updated ✓");
+  } catch (e) {
+    console.error(e);
+    showToast("Couldn't update");
+  }
+  closeCalorieEdit();
+});
+$("#calorie-edit-delete").addEventListener("click", async () => {
+  if (!editingFoodId) return;
+  try {
+    await deleteDoc(doc(db, "events", editingFoodId));
+    showToast("Deleted");
+  } catch (e) {
+    console.error(e);
+    showToast("Couldn't delete");
+  }
+  closeCalorieEdit();
+});
+
 function renderCare() {
   const container = $("#care-list");
   container.innerHTML = "";
@@ -906,8 +993,9 @@ function renderCare() {
     btn.addEventListener("click", async () => {
       btn.disabled = true;
       try {
-        await recordEvent({ type: "care", name: item.name });
+        const ref = await recordEvent({ type: "care", name: item.name });
         showToast(`${item.name} recorded ✓`);
+        showNotePrompt(ref.id, item.name);
       } catch (e) {
         console.error(e);
         showToast("Couldn't save — will retry when online");
@@ -1057,8 +1145,8 @@ function renderRecentActivity() {
   list.innerHTML = items.map(ev => `
     <div class="activity-item">
       <div class="left">
-        <div class="name">${ev.name}</div>
-        <div class="meta">Recorded by ${ev.user}</div>
+        <div class="name">${ev.name}${ev.slot && MEDICATIONS.find(m => m.id === ev.medicationId)?.slots.length > 1 ? ` · ${ev.slot}` : ""}${ev.value ? ` · ${ev.value} ${ev.unit}` : ""}</div>
+        <div class="meta">Recorded by ${ev.user}${ev.note ? ` · "${ev.note}"` : ""}</div>
       </div>
       <div class="time">${fmtTime(ev.timestamp)}</div>
     </div>
@@ -1066,15 +1154,45 @@ function renderRecentActivity() {
 }
 
 // =========================== FIRESTORE: WRITE ===========================
-async function recordEvent({ type, name, medicationId = null, dose = null, value = null, unit = null }) {
-  if (!db) { showToast("Firebase isn't configured yet"); return; }
+async function recordEvent({ type, name, medicationId = null, dose = null, slot = null, value = null, unit = null, note = null }) {
+  if (!db) { showToast("Firebase isn't configured yet"); throw new Error("Firebase not configured"); }
   const now = new Date();
-  await addDoc(collection(db, "events"), {
-    type, name, medicationId, dose, value, unit,
+  return await addDoc(collection(db, "events"), {
+    type, name, medicationId, dose, slot, value, unit, note,
     user: currentUser,
     timestamp: Timestamp.fromDate(now),
     createdAt: serverTimestamp()
   });
+}
+
+// Small "add a note?" banner that appears right after logging a quick action
+// (Physio/Walks/Care). Logging stays a single fast tap; the note is optional
+// and only added if someone types one within a few seconds.
+function showNotePrompt(eventId, label) {
+  const banner = $("#note-prompt");
+  banner.innerHTML = `
+    <span>Add a note for ${label}?</span>
+    <input type="text" id="note-prompt-input" placeholder="e.g. 15 min, seemed happy" />
+    <button id="note-prompt-save">Save</button>
+    <button id="note-prompt-dismiss" aria-label="Dismiss">✕</button>
+  `;
+  banner.classList.add("show");
+  setTimeout(() => { const el = $("#note-prompt-input"); if (el) el.focus(); }, 50);
+
+  const cleanup = () => { banner.classList.remove("show"); clearTimeout(showNotePrompt._t); };
+
+  $("#note-prompt-save").addEventListener("click", async () => {
+    const note = $("#note-prompt-input").value.trim();
+    cleanup();
+    if (!note) return;
+    try { await updateDoc(doc(db, "events", eventId), { note }); }
+    catch (e) { console.error(e); showToast("Couldn't save that note"); }
+  });
+  $("#note-prompt-dismiss").addEventListener("click", cleanup);
+  $("#note-prompt-input").addEventListener("keydown", e => { if (e.key === "Enter") $("#note-prompt-save").click(); });
+
+  clearTimeout(showNotePrompt._t);
+  showNotePrompt._t = setTimeout(cleanup, 10000);
 }
 
 // =========================== FIRESTORE: LISTENERS ===========================
@@ -1106,7 +1224,7 @@ function attachTodayListener() {
     });
     renderPhysio();
     renderWalks();
-    renderMeals();
+    renderFood();
     renderRecentActivity();
     renderMedications(); // daily-twice meds (Prazosin) depend on today's doses
   }, err => console.error("today listener", err));
@@ -1137,40 +1255,7 @@ function attachListeners() {
     renderDateBanner();
   }).catch(console.error);
 
-  // Per-medication last dose + first dose listeners
-  MEDICATIONS.forEach(med => {
-    medState[med.id] = medState[med.id] || {};
-
-    const lastQ = query(
-      collection(db, "events"),
-      where("type", "==", "medication"),
-      where("medicationId", "==", med.id),
-      orderBy("timestamp", "desc"),
-      limit(1)
-    );
-    const unsubLast = onSnapshot(lastQ, snap => {
-      medState[med.id].lastDose = snap.empty ? null : tsToDate(snap.docs[0].data().timestamp);
-      renderMedications();
-    }, err => console.error("med last dose listener", med.id, err));
-    unsubscribers.push(unsubLast);
-
-    if (med.type === "limited") {
-      const firstQ = query(
-        collection(db, "events"),
-        where("type", "==", "medication"),
-        where("medicationId", "==", med.id),
-        orderBy("timestamp", "asc"),
-        limit(1)
-      );
-      const unsubFirst = onSnapshot(firstQ, snap => {
-        medState[med.id].firstDose = snap.empty ? null : tsToDate(snap.docs[0].data().timestamp);
-        renderMedications();
-      }, err => console.error("med first dose listener", med.id, err));
-      unsubscribers.push(unsubFirst);
-    }
-  });
-
-  // Today's events (physio/walk/meal/care/medication) for toggles + recent activity
+  // Today's events (physio/walk/food/care/medication) for toggles + recent activity
   attachTodayListener();
 
   // Most recent event overall per care item (for "Last: ..." even if not today)
@@ -1317,7 +1402,7 @@ function renderHistoryContent(events, date) {
     medication: { label: "💊 Medications", items: [] },
     physio: { label: "🧘 Physio", items: [] },
     walk: { label: "🚶 Walks", items: [] },
-    meal: { label: "🍽️ Food", items: [] },
+    food: { label: "🍽️ Food", items: [] },
     care: { label: "🐾 Care", items: [] },
     weight: { label: "⚖️ Weight", items: [] }
   };
@@ -1330,8 +1415,8 @@ function renderHistoryContent(events, date) {
         ${group.items.map(ev => `
           <div class="activity-item">
             <div class="left">
-              <div class="name">${ev.name}${ev.dose ? ` · ${ev.dose}` : ""}${ev.value ? ` · ${ev.value} ${ev.unit}` : ""}</div>
-              <div class="meta">Recorded by ${ev.user}</div>
+              <div class="name">${ev.name}${ev.slot && MEDICATIONS.find(m => m.id === ev.medicationId)?.slots.length > 1 ? ` · ${ev.slot}` : ""}${ev.dose ? ` · ${ev.dose}` : ""}${ev.value ? ` · ${ev.value} ${ev.unit}` : ""}</div>
+              <div class="meta">Recorded by ${ev.user}${ev.note ? ` · "${ev.note}"` : ""}</div>
             </div>
             <div class="time">${fmtTime(ev.timestamp)}</div>
           </div>
@@ -1357,7 +1442,7 @@ function boot() {
   renderMedications();
   renderPhysio();
   renderWalks();
-  renderMeals();
+  renderFood();
   renderCare();
   renderWeight();
   renderRecentActivity();
