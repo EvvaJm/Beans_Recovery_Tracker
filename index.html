@@ -122,8 +122,10 @@
   .med-card{border-left:8px solid transparent;}
   .med-card[data-med-id="gabapentin"]{border-left-color:#EF7FA6; background:#FDF1F6;}
   .med-card[data-med-id="prazosin"]{border-left-color:#E3B23C; background:#FEFAEC;}
+  .med-card[data-med-id="antibiotics"]{border-left-color:#EF9B4E; background:#FDF3E9;}
   .med-card[data-med-id="gabapentin"] .give-btn{background:linear-gradient(135deg, #EF7FA6, #DB5A85);}
   .med-card[data-med-id="prazosin"] .give-btn{background:linear-gradient(135deg, #E3B23C, #C7961F);}
+  .med-card[data-med-id="antibiotics"] .give-btn{background:linear-gradient(135deg, #EF9B4E, #D67D2E);}
 
   .give-btn{
     margin-top:12px; width:100%; border:none; padding:14px; border-radius:var(--radius-md);
@@ -589,8 +591,9 @@ document.querySelectorAll('img[src="BeansHeadshot.png"]').forEach(img => {
 // ---- Medication configuration (data-driven; not time-specific anymore — just
 // a once/twice daily checklist. "slots" are the daily press-buttons for that med.) ----
 const MEDICATIONS = [
-  { id: "gabapentin", name: "Gabapentin", dose: "1 capsule", slots: ["Morning", "Bedtime"] },
-  { id: "prazosin",   name: "Prazosin",   dose: "1 tablet",  slots: ["Daily Dose"] }
+  { id: "gabapentin",  name: "Gabapentin",  dose: "1 capsule", slots: ["Morning", "Bedtime"] },
+  { id: "prazosin",    name: "Prazosin",    dose: "1 tablet",  slots: ["Daily Dose"] },
+  { id: "antibiotics", name: "Antibiotics", dose: "1 tablet",  slots: ["Morning", "Evening"], courseDurationDays: 10 }
 ];
 
 const PHYSIO_SESSIONS = [1,2,3,4].map(n => ({ id: `physio-${n}`, name: `Physio ${n}`, type: "physio" }));
@@ -611,6 +614,7 @@ let currentUser = localStorage.getItem(USER_KEY) || null;
 
 // ---- Runtime state populated from Firestore listeners ----
 let todayEvents = [];     // events with timestamp today (physio/walk/food/care/recent activity)
+const courseStartState = {}; // medId -> Date of the very first dose ever (for course-limited meds only)
 let recoveryStartDate = null;
 let unsubscribers = [];
 let historyUnsub = null;
@@ -770,6 +774,16 @@ function renderMedications() {
   const container = $("#medications-list");
   container.innerHTML = "";
   MEDICATIONS.forEach(med => {
+    // Course-limited meds (e.g. a 10-day antibiotic course) disappear from
+    // the active list once their course is over — history keeps every dose.
+    if (med.courseDurationDays) {
+      const start = courseStartState[med.id];
+      if (start) {
+        const courseEnd = new Date(start.getTime() + med.courseDurationDays * 86400000);
+        if (Date.now() >= courseEnd.getTime()) return;
+      }
+    }
+
     const card = document.createElement("div");
     card.className = "card med-card";
     card.dataset.medId = med.id;
@@ -785,12 +799,25 @@ function renderMedications() {
       `;
     }).join("");
 
+    let courseHtml = "";
+    if (med.courseDurationDays) {
+      const start = courseStartState[med.id];
+      if (start) {
+        const courseEnd = new Date(start.getTime() + med.courseDurationDays * 86400000);
+        const daysLeft = Math.max(1, Math.ceil((courseEnd.getTime() - Date.now()) / 86400000));
+        courseHtml = `<div class="course-remaining">Course ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"}</div>`;
+      } else {
+        courseHtml = `<span class="med-tag">${med.courseDurationDays}-day course</span>`;
+      }
+    }
+
     card.innerHTML = `
       <div class="med-top">
         <span class="med-name">💊 ${med.name}</span>
         <span class="med-dose">${med.dose}</span>
       </div>
       <div class="med-schedule">${med.slots.length > 1 ? `${med.slots.length}x daily` : "Once daily"}</div>
+      ${courseHtml}
       <div class="toggle-row" style="margin-top:12px;">${slotsHtml}</div>
     `;
     container.appendChild(card);
@@ -1254,6 +1281,23 @@ function attachListeners() {
     }
     renderDateBanner();
   }).catch(console.error);
+
+  // First-ever dose date for any course-limited medication (e.g. antibiotics),
+  // so we know when its course started and can hide it once it's over.
+  MEDICATIONS.filter(med => med.courseDurationDays).forEach(med => {
+    const firstQ = query(
+      collection(db, "events"),
+      where("type", "==", "medication"),
+      where("medicationId", "==", med.id),
+      orderBy("timestamp", "asc"),
+      limit(1)
+    );
+    const unsubFirst = onSnapshot(firstQ, snap => {
+      courseStartState[med.id] = snap.empty ? null : tsToDate(snap.docs[0].data().timestamp);
+      renderMedications();
+    }, err => console.error("course start listener", med.id, err));
+    unsubscribers.push(unsubFirst);
+  });
 
   // Today's events (physio/walk/food/care/medication) for toggles + recent activity
   attachTodayListener();
