@@ -1,0 +1,12 @@
+{
+  "name": "Beans' Recovery",
+  "short_name": "Beans",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FBF1F7",
+  "theme_color": "#8B6FB3",
+  "icons": [
+    { "src": "BeansHeadshot.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "BeansHeadshot.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
