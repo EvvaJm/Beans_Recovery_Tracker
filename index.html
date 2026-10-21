@@ -125,14 +125,8 @@
     text-align:center; margin-top:6px; font-size:12.5px; color:var(--text-soft); font-weight:700;
   }
 
-  /* ---------- Medicine-bottle colour coding ---------- */
-  .med-card{border-left:8px solid transparent;}
-  .med-card[data-med-id="gabapentin"]{border-left-color:#EF7FA6; background:#FDF1F6;}
-  .med-card[data-med-id="prazosin"]{border-left-color:#E3B23C; background:#FEFAEC;}
-  .med-card[data-med-id="antibiotics"]{border-left-color:#EF9B4E; background:#FDF3E9;}
-  .med-card[data-med-id="gabapentin"] .give-btn{background:linear-gradient(135deg, #EF7FA6, #DB5A85);}
-  .med-card[data-med-id="prazosin"] .give-btn{background:linear-gradient(135deg, #E3B23C, #C7961F);}
-  .med-card[data-med-id="antibiotics"] .give-btn{background:linear-gradient(135deg, #EF9B4E, #D67D2E);}
+  /* ---------- Medicine-bottle colour coding (colour is set per medication, inline) ---------- */
+  .med-card{border-left:8px solid var(--purple-pale);}
 
   .give-btn{
     margin-top:12px; width:100%; border:none; padding:14px; border-radius:var(--radius-md);
@@ -315,7 +309,7 @@
   .note-prompt span{flex-basis:100%; font-weight:800; font-size:13px; color:var(--text);}
   .note-prompt input{
     flex:1; min-width:120px; padding:10px 12px; border-radius:var(--radius-sm); border:2px solid var(--line);
-    font-family:inherit; font-size:13.5px; font-weight:700; color:var(--text);
+    font-family:inherit; font-size:16px; font-weight:700; color:var(--text);
   }
   .note-prompt input:focus{outline:none; border-color:var(--purple);}
   .note-prompt button{border:none; border-radius:999px; padding:10px 14px; font-weight:800; font-size:12.5px; cursor:pointer;}
@@ -348,6 +342,56 @@
   .edit-modal-save{background:linear-gradient(135deg, var(--purple), var(--purple-deep)); color:white;}
   .edit-modal-delete{background:var(--pink-pale); color:var(--pink-deep);}
   .edit-modal-cancel{background:var(--purple-pale); color:var(--purple-deep);}
+
+  /* ---------- Edit Medications button + modal ---------- */
+  .edit-meds-btn{
+    width:100%; border:2px dashed var(--purple-pale); background:transparent; color:var(--purple-deep);
+    padding:12px; border-radius:var(--radius-md); font-weight:800; font-size:13.5px; cursor:pointer; margin-top:2px;
+  }
+  .edit-meds-btn:active{transform:scale(0.98);}
+  .meds-modal-card{max-width:420px; max-height:88vh; overflow-y:auto;}
+  .meds-modal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .meds-modal-head h3{margin:0;}
+  .meds-modal-card input, .meds-modal-card select{text-align:left; margin-bottom:12px;}
+  .meds-modal-card select{
+    width:100%; padding:12px 14px; border-radius:var(--radius-md); border:2px solid var(--line);
+    font-family:inherit; font-size:16px; font-weight:800; color:var(--text); background:white;
+  }
+  .form-label{display:block; font-size:12.5px; font-weight:800; color:var(--text-soft); margin:0 0 6px 2px;}
+  .med-row{
+    display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:8px;
+    border-radius:var(--radius-md); background:var(--bg); border-left:6px solid var(--purple-pale);
+  }
+  .med-row .info{flex:1; min-width:0;}
+  .med-row .info .n{font-weight:800; font-size:14.5px; color:var(--text);}
+  .med-row .info .d{font-size:12px; font-weight:700; color:var(--text-soft);}
+  .med-row .row-actions button.confirm{background:var(--pink-pale); color:var(--pink-deep); width:auto; padding:0 10px; border-radius:999px; font-size:11.5px; font-weight:800;}
+  .meds-add-btn{
+    width:100%; border:none; padding:13px; border-radius:var(--radius-md); margin-top:6px;
+    background:linear-gradient(135deg, var(--purple), var(--purple-deep)); color:white; font-weight:800; font-size:14px; cursor:pointer;
+  }
+  .color-swatches{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px;}
+  .color-swatch{width:36px; height:36px; border-radius:50%; border:3px solid white; box-shadow:0 0 0 2px var(--line); cursor:pointer;}
+  .color-swatch.active{box-shadow:0 0 0 3px var(--purple-deep);}
+  .meds-empty{text-align:center; color:var(--text-soft); font-weight:700; font-size:13.5px; padding:16px 8px;}
+
+  /* ---------- Food type chips ---------- */
+  .food-chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+  .food-chip{
+    border:2px solid var(--purple-pale); background:white; color:var(--purple-deep);
+    padding:8px 14px; border-radius:999px; font-weight:800; font-size:13px; cursor:pointer; font-family:inherit;
+  }
+  .food-chip.active{background:var(--purple-deep); border-color:var(--purple-deep); color:white;}
+  .food-other-input{
+    width:100%; margin-top:10px; padding:12px 14px; border-radius:var(--radius-md); border:2px solid var(--line);
+    font-family:inherit; font-size:16px; font-weight:700; color:var(--text); background:white;
+  }
+  .food-other-input:focus{outline:none; border-color:var(--purple);}
+  .edit-modal-card .food-chips{margin-top:0; margin-bottom:10px; justify-content:center;}
+  .edit-modal-card .food-other-input{margin-top:0; margin-bottom:10px; text-align:center;}
+
+  /* ---------- Add/edit a note on a past entry ---------- */
+  .icon-btn.small.note-btn{background:var(--purple-pale);}
 </style>
 </head>
 <body>
@@ -406,6 +450,7 @@
             <p>Tap "Give" when Beans receives a medication.</p>
           </div>
           <div id="medications-list"></div>
+          <button class="edit-meds-btn" id="edit-meds-btn">✏️ Edit Medications</button>
         </section>
 
         <section class="block">
@@ -513,12 +558,63 @@
 
 <div class="edit-modal-backdrop hidden" id="calorie-edit-backdrop">
   <div class="edit-modal-card">
-    <h3>Edit Calories</h3>
-    <input type="number" inputmode="numeric" id="calorie-edit-input" />
+    <h3>Edit Food Entry</h3>
+    <div class="food-chips" id="calorie-edit-chips"></div>
+    <input type="text" class="food-other-input hidden" id="calorie-edit-other" placeholder="What was it?" />
+    <input type="number" inputmode="numeric" id="calorie-edit-input" placeholder="Calories" />
     <div class="edit-modal-actions">
       <button class="edit-modal-cancel" id="calorie-edit-cancel">Cancel</button>
       <button class="edit-modal-delete" id="calorie-edit-delete">Delete</button>
       <button class="edit-modal-save" id="calorie-edit-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="edit-modal-backdrop hidden" id="meds-modal-backdrop">
+  <div class="edit-modal-card meds-modal-card">
+    <div id="meds-list-view">
+      <div class="meds-modal-head">
+        <h3>Edit Medications</h3>
+        <button class="icon-btn small" id="meds-modal-close" aria-label="Close">✕</button>
+      </div>
+      <div id="meds-modal-list"></div>
+      <button class="meds-add-btn" id="meds-add-btn">+ Add Medication</button>
+    </div>
+
+    <div id="meds-form-view" class="hidden">
+      <h3 id="meds-form-title">Add Medication</h3>
+      <label class="form-label" for="med-name-input">Name</label>
+      <input type="text" id="med-name-input" placeholder="e.g. Gabapentin" autocomplete="off" />
+      <label class="form-label" for="med-dose-input">Dose (optional)</label>
+      <input type="text" id="med-dose-input" placeholder="e.g. 1 capsule" autocomplete="off" />
+      <label class="form-label" for="med-times-input">Times per day</label>
+      <select id="med-times-input">
+        <option value="1">1 time a day</option>
+        <option value="2">2 times a day</option>
+        <option value="3">3 times a day</option>
+        <option value="4">4 times a day</option>
+        <option value="5">5 times a day</option>
+        <option value="6">6 times a day</option>
+      </select>
+      <label class="form-label" for="med-course-input">Course length in days (optional)</label>
+      <input type="number" inputmode="numeric" id="med-course-input" placeholder="Leave blank if ongoing" />
+      <label class="form-label">Bottle colour</label>
+      <div class="color-swatches" id="med-color-swatches"></div>
+      <div class="edit-modal-actions">
+        <button class="edit-modal-cancel" id="med-form-cancel">Back</button>
+        <button class="edit-modal-save" id="med-form-save">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="edit-modal-backdrop hidden" id="note-edit-backdrop">
+  <div class="edit-modal-card">
+    <h3 id="note-edit-title">Note</h3>
+    <input type="text" id="note-edit-input" placeholder="e.g. 15 min, seemed happy" autocomplete="off" />
+    <div class="edit-modal-actions">
+      <button class="edit-modal-cancel" id="note-edit-cancel">Cancel</button>
+      <button class="edit-modal-save" id="note-edit-save">Save</button>
     </div>
   </div>
 </div>
@@ -595,13 +691,33 @@ document.querySelectorAll('img[src="BeansHeadshot.png"]').forEach(img => {
   img.addEventListener('error', () => { img.src = PLACEHOLDER_BEANS; }, { once:true });
 });
 
-// ---- Medication configuration (data-driven; not time-specific anymore — just
-// a once/twice daily checklist. "slots" are the daily press-buttons for that med.) ----
-const MEDICATIONS = [
-  { id: "gabapentin",  name: "Gabapentin",  dose: "1 capsule", slots: ["Morning", "Bedtime"] },
-  { id: "prazosin",    name: "Prazosin",    dose: "1 tablet",  slots: ["Daily Dose"] },
-  { id: "antibiotics", name: "Antibiotics", dose: "1 tablet",  slots: ["Morning", "Evening"], courseDurationDays: 10 }
+// ---- Medications ----
+// Medications now live in Firestore (the "medications" collection) so the family
+// can add / edit / remove them from the app itself via "Edit Medications".
+// Each one is a simple daily checklist: "slots" are that medication's daily
+// press-buttons. These defaults are only used ONCE, to seed a brand-new database.
+const DEFAULT_MEDICATIONS = [
+  { id: "gabapentin",  name: "Gabapentin",  dose: "1 capsule", slots: ["Morning", "Bedtime"], courseDurationDays: null, color: "pink",   order: 1 },
+  { id: "prazosin",    name: "Prazosin",    dose: "1 tablet",  slots: ["Daily Dose"],         courseDurationDays: null, color: "yellow", order: 2 },
+  { id: "antibiotics", name: "Antibiotics", dose: "1 tablet",  slots: ["Morning", "Evening"], courseDurationDays: 10,   color: "orange", order: 3 }
 ];
+
+const MED_COLORS = {
+  pink:   { main: "#EF7FA6", bg: "#FDF1F6" },
+  yellow: { main: "#E3B23C", bg: "#FEFAEC" },
+  orange: { main: "#EF9B4E", bg: "#FDF3E9" },
+  green:  { main: "#4CAF7D", bg: "#F1FAF5" },
+  blue:   { main: "#5B8DEF", bg: "#F1F5FE" },
+  purple: { main: "#8B6FB3", bg: "#F5F0FA" }
+};
+
+// Turns "times per day" into the labelled press-buttons for that medication
+function slotsForCount(n) {
+  if (n <= 1) return ["Daily Dose"];
+  if (n === 2) return ["Morning", "Evening"];
+  if (n === 3) return ["Morning", "Afternoon", "Evening"];
+  return Array.from({ length: n }, (_, i) => `Dose ${i + 1}`);
+}
 
 const PHYSIO_SESSIONS = [1,2,3,4].map(n => ({ id: `physio-${n}`, name: `Physio ${n}`, type: "physio" }));
 const WALKS = [1,2].map(n => ({ id: `walk-${n}`, name: `Walk ${n}`, type: "walk" }));
@@ -622,6 +738,9 @@ let currentUser = localStorage.getItem(USER_KEY) || null;
 // ---- Runtime state populated from Firestore listeners ----
 let todayEvents = [];     // events with timestamp today (physio/walk/food/care/recent activity)
 const courseStartState = {}; // medId -> Date of the very first dose ever (for course-limited meds only)
+let medicationsList = [];    // live from Firestore: [{ id, name, dose, slots, courseDurationDays, color, order }]
+let medsLoaded = false;
+const courseListeners = {};  // medId -> unsubscribe fn (one tiny listener per course-limited medication)
 let recoveryStartDate = null;
 let unsubscribers = [];
 let historyUnsub = null;
@@ -636,6 +755,18 @@ function showToast(msg) {
   t.classList.add("show");
   clearTimeout(showToast._h);
   showToast._h = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+// Escapes text that people type (medication names, notes, food names) before it goes into the page
+function esc(str) {
+  return String(str ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+// Should a medication event show which dose of the day it was (e.g. "Morning")?
+function showsSlot(ev) {
+  if (!ev.slot) return false;
+  if (ev.slotCount) return ev.slotCount > 1;
+  const m = medicationsList.find(x => x.id === ev.medicationId); // older entries saved before slotCount existed
+  return !!m && m.slots.length > 1;
 }
 
 function fmtTime(date) {
@@ -773,14 +904,22 @@ function renderDateBanner() {
 }
 
 // =========================== MEDICATIONS ===========================
-// Simple daily checklist now (not time/interval based) — each medication has
-// one or more daily "slots" (e.g. Gabapentin: Morning + Bedtime). Tapping a
-// slot logs it with the current time; it resets automatically at midnight
-// because it's derived from todayEvents, same as Physio/Walks/Care.
+// Simple daily checklist (not time/interval based) — each medication has one or
+// more daily "slots" (e.g. Morning + Bedtime). Tapping a slot logs it with the
+// current time; it resets automatically at midnight because it's derived from
+// todayEvents, same as Physio/Walks/Care. The list itself comes from Firestore
+// and is edited in-app with the "Edit Medications" button.
 function renderMedications() {
   const container = $("#medications-list");
   container.innerHTML = "";
-  MEDICATIONS.forEach(med => {
+
+  if (!medsLoaded) {
+    container.innerHTML = `<div class="meds-empty">Loading medications…</div>`;
+    return;
+  }
+
+  let shown = 0;
+  medicationsList.forEach(med => {
     // Course-limited meds (e.g. a 10-day antibiotic course) disappear from
     // the active list once their course is over — history keeps every dose.
     if (med.courseDurationDays) {
@@ -790,16 +929,20 @@ function renderMedications() {
         if (Date.now() >= courseEnd.getTime()) return;
       }
     }
+    shown++;
 
+    const colors = MED_COLORS[med.color] || MED_COLORS.purple;
     const card = document.createElement("div");
     card.className = "card med-card";
     card.dataset.medId = med.id;
+    card.style.borderLeftColor = colors.main;
+    card.style.background = colors.bg;
 
     const slotsHtml = med.slots.map(slot => {
       const doneToday = todayEvents.find(e => e.type === "medication" && e.medicationId === med.id && e.slot === slot);
-      const label = med.slots.length === 1 ? (doneToday ? `${med.name} Given` : `Give ${med.name}`) : slot;
+      const label = med.slots.length === 1 ? (doneToday ? `${esc(med.name)} Given` : `Give ${esc(med.name)}`) : esc(slot);
       return `
-        <button class="toggle-btn ${doneToday ? "done" : ""}" data-med="${med.id}" data-slot="${slot}">
+        <button class="toggle-btn ${doneToday ? "done" : ""}" data-med="${esc(med.id)}" data-slot="${esc(slot)}">
           <span>${label}${doneToday ? " ✓" : ""}</span>
           ${doneToday ? `<span class="sub">${fmtTime(doneToday.timestamp)}</span>` : ""}
         </button>
@@ -812,7 +955,7 @@ function renderMedications() {
       if (start) {
         const courseEnd = new Date(start.getTime() + med.courseDurationDays * 86400000);
         const daysLeft = Math.max(1, Math.ceil((courseEnd.getTime() - Date.now()) / 86400000));
-        courseHtml = `<div class="course-remaining">Course ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"}</div>`;
+        courseHtml = `<div class="course-remaining" style="text-align:left; margin-top:4px;">Course ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"}</div>`;
       } else {
         courseHtml = `<span class="med-tag">${med.courseDurationDays}-day course</span>`;
       }
@@ -820,8 +963,8 @@ function renderMedications() {
 
     card.innerHTML = `
       <div class="med-top">
-        <span class="med-name">💊 ${med.name}</span>
-        <span class="med-dose">${med.dose}</span>
+        <span class="med-name">💊 ${esc(med.name)}</span>
+        ${med.dose ? `<span class="med-dose">${esc(med.dose)}</span>` : ""}
       </div>
       <div class="med-schedule">${med.slots.length > 1 ? `${med.slots.length}x daily` : "Once daily"}</div>
       ${courseHtml}
@@ -830,13 +973,18 @@ function renderMedications() {
     container.appendChild(card);
   });
 
+  if (!shown) {
+    container.innerHTML = `<div class="meds-empty">No active medications right now.<br>Tap "Edit Medications" below to add one.</div>`;
+  }
+
   container.querySelectorAll("[data-med]").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const med = MEDICATIONS.find(m => m.id === btn.dataset.med);
+      const med = medicationsList.find(m => m.id === btn.dataset.med);
+      if (!med) return;
       const slot = btn.dataset.slot;
       btn.disabled = true;
       try {
-        await recordEvent({ type: "medication", name: med.name, medicationId: med.id, dose: med.dose, slot });
+        await recordEvent({ type: "medication", name: med.name, medicationId: med.id, dose: med.dose || null, slot, slotCount: med.slots.length });
         showToast(`${med.name} recorded ✓`);
       } catch (e) {
         console.error(e);
@@ -846,6 +994,179 @@ function renderMedications() {
       }
     });
   });
+}
+
+// ---------- Edit Medications (add / edit / remove) ----------
+let editingMedId = null;      // null = adding a new medication
+let medFormColor = "purple";
+let removeArmedId = null;     // two-tap remove confirmation
+
+function openMedsModal() {
+  $("#meds-modal-backdrop").classList.remove("hidden");
+  showMedsListView();
+}
+function closeMedsModal() {
+  $("#meds-modal-backdrop").classList.add("hidden");
+  removeArmedId = null;
+}
+function showMedsListView() {
+  $("#meds-list-view").classList.remove("hidden");
+  $("#meds-form-view").classList.add("hidden");
+  renderMedsModalList();
+}
+function renderMedsModalList() {
+  const list = $("#meds-modal-list");
+  if (!medicationsList.length) {
+    list.innerHTML = `<div class="meds-empty">No medications yet.</div>`;
+    return;
+  }
+  list.innerHTML = medicationsList.map(med => {
+    const colors = MED_COLORS[med.color] || MED_COLORS.purple;
+    const bits = [];
+    if (med.dose) bits.push(esc(med.dose));
+    bits.push(`${med.slots.length}x daily`);
+    if (med.courseDurationDays) bits.push(`${med.courseDurationDays}-day course`);
+    const armed = removeArmedId === med.id;
+    return `
+      <div class="med-row" style="border-left-color:${colors.main};">
+        <div class="info">
+          <div class="n">${esc(med.name)}</div>
+          <div class="d">${bits.join(" · ")}</div>
+        </div>
+        <div class="row-actions">
+          <button class="icon-btn small" data-edit-med="${esc(med.id)}" title="Edit">✏️</button>
+          ${armed
+            ? `<button class="icon-btn small confirm" data-remove-med="${esc(med.id)}">Remove?</button>`
+            : `<button class="icon-btn small" data-remove-med="${esc(med.id)}" title="Remove">🗑️</button>`}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  list.querySelectorAll("[data-edit-med]").forEach(b => b.addEventListener("click", () => openMedForm(b.dataset.editMed)));
+  list.querySelectorAll("[data-remove-med]").forEach(b => b.addEventListener("click", () => handleRemoveMed(b.dataset.removeMed)));
+}
+async function handleRemoveMed(id) {
+  if (removeArmedId !== id) {
+    // first tap: ask "Remove?" — tap again within 4 seconds to confirm
+    removeArmedId = id;
+    renderMedsModalList();
+    clearTimeout(handleRemoveMed._t);
+    handleRemoveMed._t = setTimeout(() => { removeArmedId = null; renderMedsModalList(); }, 4000);
+    return;
+  }
+  removeArmedId = null;
+  try {
+    await deleteDoc(doc(db, "medications", id));
+    showToast("Medication removed (history is kept)");
+  } catch (e) {
+    console.error(e);
+    showToast("Couldn't remove it");
+  }
+}
+function renderColorSwatches() {
+  const wrap = $("#med-color-swatches");
+  wrap.innerHTML = Object.keys(MED_COLORS).map(key =>
+    `<button type="button" class="color-swatch ${medFormColor === key ? "active" : ""}" data-color="${key}" style="background:${MED_COLORS[key].main};" aria-label="${key}"></button>`
+  ).join("");
+  wrap.querySelectorAll("[data-color]").forEach(b => b.addEventListener("click", () => { medFormColor = b.dataset.color; renderColorSwatches(); }));
+}
+function openMedForm(id) {
+  editingMedId = id || null;
+  const med = id ? medicationsList.find(m => m.id === id) : null;
+  $("#meds-form-title").textContent = med ? "Edit Medication" : "Add Medication";
+  $("#med-name-input").value = med ? med.name : "";
+  $("#med-dose-input").value = med ? (med.dose || "") : "";
+  $("#med-times-input").value = String(med ? med.slots.length : 1);
+  $("#med-course-input").value = med && med.courseDurationDays ? med.courseDurationDays : "";
+  medFormColor = med ? (med.color || "purple") : Object.keys(MED_COLORS)[medicationsList.length % Object.keys(MED_COLORS).length];
+  renderColorSwatches();
+  $("#meds-list-view").classList.add("hidden");
+  $("#meds-form-view").classList.remove("hidden");
+}
+async function saveMedForm() {
+  const name = $("#med-name-input").value.trim();
+  const dose = $("#med-dose-input").value.trim();
+  const times = parseInt($("#med-times-input").value, 10);
+  const courseRaw = $("#med-course-input").value.trim();
+  const course = courseRaw ? parseInt(courseRaw, 10) : null;
+  if (!name) { showToast("Please enter a name"); return; }
+  if (courseRaw && (isNaN(course) || course < 1)) { showToast("Course length must be 1 or more days"); return; }
+
+  const existing = editingMedId ? medicationsList.find(m => m.id === editingMedId) : null;
+  // keep the existing button labels if the number of doses didn't change
+  const slots = existing && existing.slots.length === times ? existing.slots : slotsForCount(times);
+  const data = { name, dose: dose || null, slots, courseDurationDays: course, color: medFormColor };
+
+  const btn = $("#med-form-save");
+  btn.disabled = true;
+  try {
+    if (existing) {
+      await updateDoc(doc(db, "medications", existing.id), data);
+      showToast("Medication updated ✓");
+    } else {
+      await addDoc(collection(db, "medications"), { ...data, order: Date.now() });
+      showToast("Medication added ✓");
+    }
+    showMedsListView();
+  } catch (e) {
+    console.error(e);
+    showToast("Couldn't save — check your connection");
+  } finally {
+    btn.disabled = false;
+  }
+}
+$("#edit-meds-btn").addEventListener("click", openMedsModal);
+$("#meds-modal-close").addEventListener("click", closeMedsModal);
+$("#meds-modal-backdrop").addEventListener("click", e => { if (e.target.id === "meds-modal-backdrop") closeMedsModal(); });
+$("#meds-add-btn").addEventListener("click", () => openMedForm(null));
+$("#med-form-cancel").addEventListener("click", showMedsListView);
+$("#med-form-save").addEventListener("click", saveMedForm);
+
+// One-time setup for a brand-new database: puts the starting medications in.
+// Uses fixed ids + a "seeded" flag so it can never create duplicates or bring
+// back a medication someone deliberately removed.
+async function ensureMedsSeeded() {
+  try {
+    const flagRef = doc(db, "config", "medsSeeded");
+    const flag = await getDoc(flagRef);
+    if (flag.exists()) return;
+    const existing = await getDocs(collection(db, "medications"));
+    if (existing.empty) {
+      for (const m of DEFAULT_MEDICATIONS) {
+        const { id, ...rest } = m;
+        await setDoc(doc(db, "medications", id), rest);
+      }
+    }
+    await setDoc(flagRef, { seededAt: Timestamp.fromDate(new Date()) });
+  } catch (e) {
+    console.warn("Couldn't seed medications yet (will retry next launch):", e);
+  }
+}
+
+// Keeps exactly one tiny "first dose ever" listener per course-limited medication
+function syncCourseListeners() {
+  const wanted = new Set(medicationsList.filter(m => m.courseDurationDays).map(m => m.id));
+  Object.keys(courseListeners).forEach(id => {
+    if (!wanted.has(id)) { courseListeners[id](); delete courseListeners[id]; delete courseStartState[id]; }
+  });
+  wanted.forEach(id => {
+    if (courseListeners[id]) return;
+    const firstQ = query(
+      collection(db, "events"),
+      where("type", "==", "medication"),
+      where("medicationId", "==", id),
+      orderBy("timestamp", "asc"),
+      limit(1)
+    );
+    courseListeners[id] = onSnapshot(firstQ, snap => {
+      courseStartState[id] = snap.empty ? null : tsToDate(snap.docs[0].data().timestamp);
+      renderMedications();
+    }, err => console.error("course start listener", id, err));
+  });
+}
+function stopCourseListeners() {
+  Object.keys(courseListeners).forEach(id => { courseListeners[id](); delete courseListeners[id]; });
 }
 
 // =========================== PHYSIO / WALKS ===========================
@@ -919,46 +1240,75 @@ function renderWeight() {
 }
 
 // =========================== FOOD (CALORIE TRACKER) ===========================
+const FOOD_TYPES = ["Dry Food", "Wet Food", "Chicken", "Treats"];
 let editingFoodId = null;
 
-function renderFood() {
-  const card = $("#food-card");
-  const entries = todayEvents
-    .filter(e => e.type === "food")
-    .sort((a, b) => b.timestamp - a.timestamp);
-  const total = entries.reduce((sum, e) => sum + (e.value || 0), 0);
+// Chip picker used by both the "add" form and the "edit" dialog:
+// Dry Food / Wet Food / Chicken / Treats / Other (type your own)
+function makeFoodPicker(chipsEl, otherEl) {
+  const state = { type: null, other: "" };
+  function render() {
+    chipsEl.innerHTML = [...FOOD_TYPES, "Other"].map(t =>
+      `<button type="button" class="food-chip ${state.type === t ? "active" : ""}" data-ft="${t}">${t}</button>`
+    ).join("");
+    otherEl.classList.toggle("hidden", state.type !== "Other");
+    chipsEl.querySelectorAll("[data-ft]").forEach(b => b.addEventListener("click", () => {
+      state.type = b.dataset.ft;
+      render();
+      if (state.type === "Other") otherEl.focus();
+    }));
+  }
+  otherEl.addEventListener("input", () => { state.other = otherEl.value; });
+  function set(name) {
+    if (!name) { state.type = null; state.other = ""; }
+    else if (FOOD_TYPES.includes(name)) { state.type = name; state.other = ""; }
+    else { state.type = "Other"; state.other = name; }
+    otherEl.value = state.other;
+    render();
+  }
+  return {
+    render, set,
+    getName() { return state.type === "Other" ? (state.other.trim() || null) : state.type; },
+    otherIsBlank() { return state.type === "Other" && !state.other.trim(); }
+  };
+}
 
+function foodLabel(e) {
+  return e.name && e.name !== "Calories" ? e.name : "Food"; // older entries were saved as just "Calories"
+}
+
+let foodPicker = null;
+
+// The form is built once (so typing / chip choices survive other phones logging
+// things in the background); only the total and the list get refreshed.
+function initFoodCard(card) {
   card.innerHTML = `
-    <div class="med-schedule" style="font-size:15px;">Today's total: <strong style="color:var(--text);">${total} cal</strong></div>
+    <div class="med-schedule" style="font-size:15px;">Today's total: <strong id="food-total" style="color:var(--text);">0 cal</strong></div>
+    <div class="food-chips" id="food-chips"></div>
+    <input type="text" class="food-other-input hidden" id="food-other-input" placeholder="What was it?" autocomplete="off" />
     <div class="weight-row">
-      <input type="number" inputmode="numeric" id="calorie-input" placeholder="e.g. 350" />
+      <input type="number" inputmode="numeric" id="calorie-input" placeholder="Calories, e.g. 350" />
       <button class="weight-log-btn" id="calorie-add-btn">Add</button>
     </div>
-    <div style="margin-top:${entries.length ? "12" : "0"}px;">
-      ${entries.map(e => `
-        <div class="activity-item">
-          <div class="left">
-            <div class="name">${e.value} cal</div>
-            <div class="meta">${fmtTime(e.timestamp)} · ${e.user}</div>
-          </div>
-          <div class="row-actions">
-            <button class="icon-btn small" data-edit-food="${e.id}" title="Edit">✏️</button>
-          </div>
-        </div>
-      `).join("")}
-    </div>
+    <div id="food-entries"></div>
   `;
+  card.dataset.ready = "1";
+  foodPicker = makeFoodPicker($("#food-chips"), $("#food-other-input"));
+  foodPicker.set(null);
 
   $("#calorie-add-btn").addEventListener("click", async () => {
     const input = $("#calorie-input");
     const val = parseInt(input.value, 10);
+    const name = foodPicker.getName();
+    if (!name) { showToast(foodPicker.otherIsBlank() ? "Type what it was" : "Pick what it was first"); return; }
     if (isNaN(val) || val <= 0) { showToast("Enter a valid calorie amount"); return; }
     const btn = $("#calorie-add-btn");
     btn.disabled = true;
     try {
-      await recordEvent({ type: "food", name: "Calories", value: val, unit: "cal" });
+      await recordEvent({ type: "food", name, value: val, unit: "cal" });
       input.value = "";
-      showToast(`${val} cal added ✓`);
+      foodPicker.set(null);
+      showToast(`${name} · ${val} cal added ✓`);
     } catch (e) {
       console.error(e);
       showToast("Couldn't save — will retry when online");
@@ -966,18 +1316,45 @@ function renderFood() {
       btn.disabled = false;
     }
   });
-  card.querySelectorAll("[data-edit-food]").forEach(btn => {
+}
+
+function renderFood() {
+  const card = $("#food-card");
+  if (!card.dataset.ready) initFoodCard(card);
+
+  const entries = todayEvents
+    .filter(e => e.type === "food")
+    .sort((a, b) => b.timestamp - a.timestamp);
+  const total = entries.reduce((sum, e) => sum + (e.value || 0), 0);
+
+  $("#food-total").textContent = `${total} cal`;
+  const list = $("#food-entries");
+  list.style.marginTop = entries.length ? "12px" : "0";
+  list.innerHTML = entries.map(e => `
+    <div class="activity-item">
+      <div class="left">
+        <div class="name">${esc(foodLabel(e))} · ${e.value} cal</div>
+        <div class="meta">${fmtTime(e.timestamp)} · ${esc(e.user)}</div>
+      </div>
+      <div class="row-actions">
+        <button class="icon-btn small" data-edit-food="${e.id}" title="Edit">✏️</button>
+      </div>
+    </div>
+  `).join("");
+  list.querySelectorAll("[data-edit-food]").forEach(btn => {
     btn.addEventListener("click", () => openCalorieEdit(btn.dataset.editFood));
   });
 }
+
+const editFoodPicker = makeFoodPicker($("#calorie-edit-chips"), $("#calorie-edit-other"));
 
 function openCalorieEdit(id) {
   const entry = todayEvents.find(e => e.id === id && e.type === "food");
   if (!entry) return;
   editingFoodId = id;
+  editFoodPicker.set(entry.name === "Calories" ? null : entry.name);
   $("#calorie-edit-input").value = entry.value;
   $("#calorie-edit-backdrop").classList.remove("hidden");
-  setTimeout(() => $("#calorie-edit-input").focus(), 50);
 }
 function closeCalorieEdit() {
   $("#calorie-edit-backdrop").classList.add("hidden");
@@ -991,8 +1368,11 @@ $("#calorie-edit-save").addEventListener("click", async () => {
   const val = parseInt($("#calorie-edit-input").value, 10);
   if (isNaN(val) || val < 0) { showToast("Enter a valid number"); return; }
   if (!editingFoodId) return;
+  if (editFoodPicker.otherIsBlank()) { showToast("Type what it was"); return; }
+  const entry = todayEvents.find(e => e.id === editingFoodId);
+  const name = editFoodPicker.getName() || (entry ? entry.name : "Calories"); // older entries keep their label if none picked
   try {
-    await updateDoc(doc(db, "events", editingFoodId), { value: val });
+    await updateDoc(doc(db, "events", editingFoodId), { value: val, name });
     showToast("Updated ✓");
   } catch (e) {
     console.error(e);
@@ -1179,20 +1559,26 @@ function renderRecentActivity() {
   list.innerHTML = items.map(ev => `
     <div class="activity-item">
       <div class="left">
-        <div class="name">${ev.name}${ev.slot && MEDICATIONS.find(m => m.id === ev.medicationId)?.slots.length > 1 ? ` · ${ev.slot}` : ""}${ev.value ? ` · ${ev.value} ${ev.unit}` : ""}</div>
-        <div class="meta">Recorded by ${ev.user}${ev.note ? ` · "${ev.note}"` : ""}</div>
+        <div class="name">${esc(ev.name)}${showsSlot(ev) ? ` · ${esc(ev.slot)}` : ""}${ev.value ? ` · ${ev.value} ${esc(ev.unit)}` : ""}</div>
+        <div class="meta">Recorded by ${esc(ev.user)}${ev.note ? ` · "${esc(ev.note)}"` : ""}</div>
       </div>
-      <div class="time">${fmtTime(ev.timestamp)}</div>
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+        <div class="time">${fmtTime(ev.timestamp)}</div>
+        <button class="icon-btn small note-btn" data-note-event="${ev.id}" title="${ev.note ? "Edit note" : "Add note"}">📝</button>
+      </div>
     </div>
   `).join("");
+  list.querySelectorAll("[data-note-event]").forEach(btn => {
+    btn.addEventListener("click", () => openNoteEdit(btn.dataset.noteEvent));
+  });
 }
 
 // =========================== FIRESTORE: WRITE ===========================
-async function recordEvent({ type, name, medicationId = null, dose = null, slot = null, value = null, unit = null, note = null }) {
+async function recordEvent({ type, name, medicationId = null, dose = null, slot = null, slotCount = null, value = null, unit = null, note = null }) {
   if (!db) { showToast("Firebase isn't configured yet"); throw new Error("Firebase not configured"); }
   const now = new Date();
   return await addDoc(collection(db, "events"), {
-    type, name, medicationId, dose, slot, value, unit, note,
+    type, name, medicationId, dose, slot, slotCount, value, unit, note,
     user: currentUser,
     timestamp: Timestamp.fromDate(now),
     createdAt: serverTimestamp()
@@ -1200,34 +1586,90 @@ async function recordEvent({ type, name, medicationId = null, dose = null, slot 
 }
 
 // Small "add a note?" banner that appears right after logging a quick action
-// (Physio/Walks/Care). Logging stays a single fast tap; the note is optional
-// and only added if someone types one within a few seconds.
+// (Physio/Walks/Care). Logging stays a single fast tap; the note is optional.
+//  - It stays open the whole time someone is typing (the old version dismissed
+//    itself after a fixed 10 seconds even mid-sentence).
+//  - It lifts itself above the phone keyboard so it can't get covered up.
+//  - Anything missed can still be added later from Recent Activity (📝).
+function positionNotePrompt() {
+  const banner = $("#note-prompt");
+  const vv = window.visualViewport;
+  if (!vv || !banner.classList.contains("show")) return;
+  const keyboardHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  banner.style.bottom = (keyboardHeight + 22) + "px";
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", positionNotePrompt);
+  window.visualViewport.addEventListener("scroll", positionNotePrompt);
+}
+
 function showNotePrompt(eventId, label) {
   const banner = $("#note-prompt");
   banner.innerHTML = `
-    <span>Add a note for ${label}?</span>
-    <input type="text" id="note-prompt-input" placeholder="e.g. 15 min, seemed happy" />
+    <span>Add a note for ${esc(label)}?</span>
+    <input type="text" id="note-prompt-input" placeholder="e.g. 15 min, seemed happy" autocomplete="off" />
     <button id="note-prompt-save">Save</button>
     <button id="note-prompt-dismiss" aria-label="Dismiss">✕</button>
   `;
-  banner.classList.add("show");
-  setTimeout(() => { const el = $("#note-prompt-input"); if (el) el.focus(); }, 50);
+  const input = $("#note-prompt-input");
 
-  const cleanup = () => { banner.classList.remove("show"); clearTimeout(showNotePrompt._t); };
+  function stopTimer() { clearTimeout(showNotePrompt._t); }
+  function startTimer(ms) { stopTimer(); showNotePrompt._t = setTimeout(cleanup, ms); }
+  function cleanup() {
+    stopTimer();
+    banner.classList.remove("show");
+    banner.style.bottom = "";
+  }
+
+  banner.classList.add("show");
+  positionNotePrompt();
+  startTimer(15000);                         // gives time to notice it and tap the box
+
+  input.addEventListener("focus", () => { stopTimer(); positionNotePrompt(); });   // tapped in: never auto-dismiss
+  input.addEventListener("input", stopTimer);                                      // typing: never auto-dismiss
+  input.addEventListener("blur", () => { if (!input.value.trim()) startTimer(8000); });
 
   $("#note-prompt-save").addEventListener("click", async () => {
-    const note = $("#note-prompt-input").value.trim();
+    const note = input.value.trim();
     cleanup();
     if (!note) return;
-    try { await updateDoc(doc(db, "events", eventId), { note }); }
+    try { await updateDoc(doc(db, "events", eventId), { note }); showToast("Note saved ✓"); }
     catch (e) { console.error(e); showToast("Couldn't save that note"); }
   });
   $("#note-prompt-dismiss").addEventListener("click", cleanup);
-  $("#note-prompt-input").addEventListener("keydown", e => { if (e.key === "Enter") $("#note-prompt-save").click(); });
-
-  clearTimeout(showNotePrompt._t);
-  showNotePrompt._t = setTimeout(cleanup, 10000);
+  input.addEventListener("keydown", e => { if (e.key === "Enter") $("#note-prompt-save").click(); });
 }
+
+// ---- Add / edit a note on an entry after the fact (from Recent Activity) ----
+let editingNoteId = null;
+function openNoteEdit(id) {
+  const ev = todayEvents.find(e => e.id === id);
+  if (!ev) return;
+  editingNoteId = id;
+  $("#note-edit-title").textContent = `Note for ${ev.name}`;
+  $("#note-edit-input").value = ev.note || "";
+  $("#note-edit-backdrop").classList.remove("hidden");
+  $("#note-edit-input").focus();
+}
+function closeNoteEdit() {
+  $("#note-edit-backdrop").classList.add("hidden");
+  editingNoteId = null;
+}
+$("#note-edit-cancel").addEventListener("click", closeNoteEdit);
+$("#note-edit-backdrop").addEventListener("click", e => { if (e.target.id === "note-edit-backdrop") closeNoteEdit(); });
+$("#note-edit-input").addEventListener("keydown", e => { if (e.key === "Enter") $("#note-edit-save").click(); });
+$("#note-edit-save").addEventListener("click", async () => {
+  if (!editingNoteId) return;
+  const note = $("#note-edit-input").value.trim();
+  try {
+    await updateDoc(doc(db, "events", editingNoteId), { note: note || null });
+    showToast(note ? "Note saved ✓" : "Note removed");
+  } catch (e) {
+    console.error(e);
+    showToast("Couldn't save that note");
+  }
+  closeNoteEdit();
+});
 
 // =========================== FIRESTORE: LISTENERS ===========================
 function clearListeners() {
@@ -1289,22 +1731,22 @@ function attachListeners() {
     renderDateBanner();
   }).catch(console.error);
 
-  // First-ever dose date for any course-limited medication (e.g. antibiotics),
-  // so we know when its course started and can hide it once it's over.
-  MEDICATIONS.filter(med => med.courseDurationDays).forEach(med => {
-    const firstQ = query(
-      collection(db, "events"),
-      where("type", "==", "medication"),
-      where("medicationId", "==", med.id),
-      orderBy("timestamp", "asc"),
-      limit(1)
-    );
-    const unsubFirst = onSnapshot(firstQ, snap => {
-      courseStartState[med.id] = snap.empty ? null : tsToDate(snap.docs[0].data().timestamp);
-      renderMedications();
-    }, err => console.error("course start listener", med.id, err));
-    unsubscribers.push(unsubFirst);
-  });
+  // The medication list itself (editable in-app via "Edit Medications")
+  ensureMedsSeeded();
+  const unsubMeds = onSnapshot(collection(db, "medications"), snap => {
+    medicationsList = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(m => m && m.name && Array.isArray(m.slots) && m.slots.length)
+      .sort((a, b) => (a.order || 0) - (b.order || 0) || String(a.name).localeCompare(String(b.name)));
+    medsLoaded = true;
+    syncCourseListeners();   // course-limited meds need their "first dose" date
+    renderMedications();
+    if (!$("#meds-modal-backdrop").classList.contains("hidden") && !$("#meds-list-view").classList.contains("hidden")) {
+      renderMedsModalList();
+    }
+  }, err => console.error("medications listener", err));
+  unsubscribers.push(unsubMeds);
+  unsubscribers.push(stopCourseListeners);
 
   // Today's events (physio/walk/food/care/medication) for toggles + recent activity
   attachTodayListener();
@@ -1466,8 +1908,8 @@ function renderHistoryContent(events, date) {
         ${group.items.map(ev => `
           <div class="activity-item">
             <div class="left">
-              <div class="name">${ev.name}${ev.slot && MEDICATIONS.find(m => m.id === ev.medicationId)?.slots.length > 1 ? ` · ${ev.slot}` : ""}${ev.dose ? ` · ${ev.dose}` : ""}${ev.value ? ` · ${ev.value} ${ev.unit}` : ""}</div>
-              <div class="meta">Recorded by ${ev.user}${ev.note ? ` · "${ev.note}"` : ""}</div>
+              <div class="name">${esc(ev.name)}${showsSlot(ev) ? ` · ${esc(ev.slot)}` : ""}${ev.dose ? ` · ${esc(ev.dose)}` : ""}${ev.value ? ` · ${ev.value} ${esc(ev.unit)}` : ""}</div>
+              <div class="meta">Recorded by ${esc(ev.user)}${ev.note ? ` · "${esc(ev.note)}"` : ""}</div>
             </div>
             <div class="time">${fmtTime(ev.timestamp)}</div>
           </div>
